@@ -1,0 +1,14 @@
+**/Makefile
+
+**/*.o
+**/*.out
+
+bin/
+obj/
+
+
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
