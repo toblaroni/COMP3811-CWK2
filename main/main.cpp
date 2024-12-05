@@ -119,6 +119,10 @@ int main() try
 	OGL_CHECKPOINT_ALWAYS();
 
 	// TODO: global GL setup goes here
+	glEnable( GL_DEPTH_TEST );
+	glEnable( GL_FRAMEBUFFER_SRGB );
+	glEnable( GL_CULL_FACE );
+	glClearColor( 0.2f, 0.2f, 0.2f, 0.f );
 
 	OGL_CHECKPOINT_ALWAYS();
 

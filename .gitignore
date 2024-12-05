@@ -6,6 +6,10 @@
 bin/
 obj/
 
+lib/
+
+**/*.d
+**/*.make
 
 .vscode/
 .idea/
