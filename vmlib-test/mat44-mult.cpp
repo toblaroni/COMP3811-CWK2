@@ -29,7 +29,7 @@ TEST_CASE("4x4 matrix by matrix multiplication", "[mat44]") {
 
         Mat44f result = aLeft * aRight;
 
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
         }
@@ -51,7 +51,7 @@ TEST_CASE("4x4 matrix by vector multiplication", "[mat44][vec4]") {
             30.0f, 70.0f, 110.0f, 150.0f
         };
 
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
         Vec4f result = matrix * vector;
 
         REQUIRE_THAT(result.x, WithinAbs(expected.x, tolerance));
