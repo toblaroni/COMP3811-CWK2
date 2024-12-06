@@ -59,23 +59,23 @@ constexpr Mat44f kIdentity44f = { {
 
 constexpr 
 Mat44f operator*(Mat44f const &aLeft, Mat44f const &aRight) noexcept {
-	float v[16] = {};
+    Mat44f ret = {};
 
 	for (int row = 0; row < 4; ++row) {
 		for (int col = 0; col < 4; ++col) {
-			v[row * 4 + col] = 
-				aLeft.v[row * 4 + 0] * aRight.v[0 * 4 + col] +
-				aLeft.v[row * 4 + 1] * aRight.v[1 * 4 + col] +
-				aLeft.v[row * 4 + 2] * aRight.v[2 * 4 + col] +
-				aLeft.v[row * 4 + 3] * aRight.v[3 * 4 + col];
+			ret(row, col) = 
+				aLeft(row, 0) * aRight(0, col) +
+				aLeft(row, 1) * aRight(1, col) +
+				aLeft(row, 2) * aRight(2, col) +
+				aLeft(row, 3) * aRight(3, col);
 		}
 	}
 
 	return {
-		v[0], v[1], v[2], v[3], 
-		v[4], v[5], v[6], v[7], 
-		v[8], v[9], v[10], v[11], 
-		v[12], v[13], v[14], v[15], 
+		ret.v[0], ret.v[1], ret.v[2], ret.v[3], 
+		ret.v[4], ret.v[5], ret.v[6], ret.v[7], 
+		ret.v[8], ret.v[9], ret.v[10], ret.v[11], 
+		ret.v[12], ret.v[13], ret.v[14], ret.v[15], 
 	};
 }
 
