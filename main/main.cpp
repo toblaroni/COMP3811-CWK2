@@ -15,6 +15,7 @@
 
 #include "../vmlib/vec4.hpp"
 #include "../vmlib/mat44.hpp"
+#include "../vmlib/mat33.hpp"
 
 #include "defaults.hpp"
 #include "loadobj.hpp"
@@ -180,6 +181,7 @@ int main() try
 
 		// Update state
 		//TODO: update state
+        Mat33f normalMatrix = mat44_to_mat33(kIdentity44f);
 
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
@@ -187,6 +189,17 @@ int main() try
 		//TODO: draw frame
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
+
+        glUniformMatrix3fv(
+            0,
+            1, GL_TRUE, normalMatrix.v
+        );
+
+        Vec3f lightDir = normalize( Vec3f{ -1.f, 1.f, 0.5f } );
+        glUniform3fv( 1, 1, &lightDir.x );
+
+        glUniform3f( 2, 0.9f, 0.9f, 0.6f );
+        glUniform3f( 3, 0.05f, 0.05f, 0.05f );
 
         glBindVertexArray( vao );
         glDrawArrays( GL_TRIANGLES, 0, vertexCount );

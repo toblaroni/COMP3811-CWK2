@@ -32,9 +32,15 @@ SimpleMeshData load_wavefront_obj( char const* aPath )
             auto const& mat = result.materials[shape.mesh.material_ids[i/3]];
 
             ret.colors.emplace_back( Vec3f {
-                mat.ambient[0],
-                mat.ambient[1],
-                mat.ambient[2],
+                mat.diffuse[0],
+                mat.diffuse[1],
+                mat.diffuse[2],
+            });
+
+            ret.normals.emplace_back( Vec3f {
+                result.attributes.normals[idx.normal_index*3+0],    // Use normal index 
+                result.attributes.normals[idx.normal_index*3+1],
+                result.attributes.normals[idx.normal_index*3+2]
             });
         }
     }
