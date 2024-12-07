@@ -17,7 +17,7 @@
 #include "../vmlib/mat44.hpp"
 
 #include "defaults.hpp"
-
+#include "loadobj.hpp"
 
 namespace
 {
@@ -135,12 +135,19 @@ int main() try
 
 	glViewport( 0, 0, iwidth, iheight );
 
+	// Load shader program
+	ShaderProgram prog( {
+		{ GL_VERTEX_SHADER, "assets/cw2/default.vert" },
+		{ GL_FRAGMENT_SHADER, "assets/cw2/default.frag" }
+	} );
+
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
-	
-	// TODO: global GL setup goes here
 
-	OGL_CHECKPOINT_ALWAYS();
+    // Load the terrain and add to VAO
+    auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
+    GLuint vao = create_vao(langersoMesh);
+    std::size_t vertexCount = langersoMesh.positions.size();
 
 	// Main loop
 	while( !glfwWindowShouldClose( window ) )
@@ -178,6 +185,11 @@ int main() try
 		OGL_CHECKPOINT_DEBUG();
 
 		//TODO: draw frame
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+        glUseProgram( prog.programId() );
+
+        glBindVertexArray( vao );
+        glDrawArrays( GL_TRIANGLES, 0, vertexCount );
 
 		OGL_CHECKPOINT_DEBUG();
 
