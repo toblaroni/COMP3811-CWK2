@@ -6,6 +6,8 @@
 bin/
 obj/
 
+.DS_Store
+
 lib/
 
 **/*.d
