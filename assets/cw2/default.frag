@@ -1,11 +1,11 @@
-#version 430
+#version 410
 
 in vec3 v2fColor;
 in vec3 v2fNormal;
 
-layout( location = 2 ) uniform vec3 uLightDir;
-layout( location = 3 ) uniform vec3 uLightDiffuse;
-layout( location = 4 ) uniform vec3 uSceneAmbient;
+uniform vec3 uLightDir;
+uniform vec3 uLightDiffuse;
+uniform vec3 uSceneAmbient;
 
 layout( location = 0 ) out vec3 oColor;
 

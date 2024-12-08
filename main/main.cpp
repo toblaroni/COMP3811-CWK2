@@ -81,12 +81,20 @@ int main() try
 	glfwWindowHint( GLFW_DOUBLEBUFFER, GLFW_TRUE );
 
 	//glfwWindowHint( GLFW_RESIZABLE, GLFW_FALSE );
-
+	
+#	if !defined(__APPLE__)
+	// Most platforms will support OpenGL 4.3
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+#	else // defined(__APPLE__)
+	// Apple has at most OpenGL 4.1, so don't ask for something newer.
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
+#	endif // ~ __APPLE__
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
+	//TODO: additional GLFW configuration here
 	glfwWindowHint( GLFW_DEPTH_BITS, 24 );
 
 #	if !defined(NDEBUG)
@@ -169,7 +177,20 @@ int main() try
 		{ GL_FRAGMENT_SHADER, "assets/cw2/default.frag" }
 	} );
 
+	// FIX FOR 4.1
+	GLint uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
+	GLint uNormalMatrixLocation = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uLightDirLocation = glGetUniformLocation(prog.programId(), "uLightDir");
+	GLint uLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uLightDiffuse");
+	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+
+	// Ensure the locations are valid
+	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 || uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+		std::fprintf(stderr, "Error: Uniform location not found\n");
+	}
+
     state.prog = &prog;
+
     state.camControl.cameraActive = false;
     state.camControl.pitch = 0.f;
     state.camControl.yaw = 0.f;
@@ -243,21 +264,21 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
-        glUniformMatrix4fv(
-            0,
-            1, GL_TRUE, projCameraWorld.v
-        );
+		glUniformMatrix4fv(
+			uProjCameraWorldLocation,
+			1, GL_TRUE, projCameraWorld.v
+		);
 
-        glUniformMatrix3fv(
-            1,
-            1, GL_TRUE, normalMatrix.v
-        );
+		glUniformMatrix3fv(
+			uNormalMatrixLocation,
+			1, GL_TRUE, normalMatrix.v
+		);
 
         Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-        glUniform3fv( 2, 1, &lightDir.x );
 
-        glUniform3f( 3, 0.9f, 0.9f, 0.6f );
-        glUniform3f( 4, 0.05f, 0.05f, 0.05f );
+		glUniform3fv( uLightDirLocation, 1, &lightDir.x );
+		glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
+		glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
 
         glBindVertexArray( vao );
         glDrawArrays( GL_TRIANGLES, 0, vertexCount );
