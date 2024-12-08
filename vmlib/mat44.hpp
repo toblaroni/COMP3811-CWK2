@@ -164,4 +164,32 @@ Mat44f make_perspective_projection( float aFovInRadians, float aAspect, float aN
 	};
 }
 
+// https://learnopengl.com/Getting-started/Camera
+Mat44f look_at( Vec3f pos, Vec3f target, Vec3f up ) {
+
+    Vec3f cameraDirection = normalize(pos - target);
+
+    Vec3f cameraRight = normalize(
+        cross(up, cameraDirection)      // Cross product of 2 matrices is perpendicular
+    );
+    
+    Vec3f cameraUp = cross( cameraDirection, cameraRight );
+
+    Mat44f left = { {
+        cameraRight.x, cameraRight.y, cameraRight.z, 0.f,
+        cameraUp.x, cameraUp.y, cameraUp.z, 0.f,
+        cameraDirection.x, cameraDirection.y, cameraDirection.z, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    } };
+
+    Mat44f right = { {
+        1.f, 0.f, 0.f, -pos.x,
+        0.f, 1.f, 0.f, -pos.y,
+        0.f, 0.f, 1.f, -pos.z,
+        0.f, 0.f, 0.f, 1.f,
+    } };
+
+    return left * right;
+}
+
 #endif // MAT44_HPP_E7187A26_469E_48AD_A3D2_63150F05A4CA

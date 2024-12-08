@@ -144,4 +144,14 @@ Vec3f normalize( Vec3f aVec ) noexcept
 	return aVec / l;
 }
 
+// https://math.libretexts.org/Bookshelves/Calculus/Calculus_(OpenStax)/12%3A_Vectors_in_Space/12.04%3A_The_Cross_Product
+inline
+Vec3f cross(Vec3f aLeft, Vec3f aRight)
+{
+    return Vec3f{
+        aLeft.y * aRight.z - aLeft.z * aRight.y,
+        -(aLeft.x * aRight.z - aLeft.z * aRight.x),
+        aLeft.x * aRight.y - aLeft.y * aRight.x};
+}
+
 #endif // VEC3_HPP_5710DADF_17EF_453C_A9C8_4A73DC66B1CD
