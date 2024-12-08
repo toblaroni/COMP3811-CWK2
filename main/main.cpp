@@ -23,10 +23,22 @@
 namespace
 {
 	constexpr char const* kWindowTitle = "COMP3811 - CW2";
+ 
+    // This will contain the state of our program
+    struct State_ {
+        ShaderProgram* prog;
+
+        struct CamCtrl_ {
+            bool cameraActive;
+
+        } camControl;
+    };
 	
 	void glfw_callback_error_( int, char const* );
 
 	void glfw_callback_key_( GLFWwindow*, int, int, int, int );
+    void glfw_callback_motion_( GLFWwindow* aWindow, double aMouseXPos, double aMouseYPos );
+    void glfw_callback_mouse_( GLFWwindow* aWindow, int aButton, int aAction, int aMods );
 
 	struct GLFWCleanupHelper
 	{
@@ -91,11 +103,18 @@ int main() try
 
 	GLFWWindowDeleter windowDeleter{ window };
 
-
 	// Set up event handling
 	// TODO: Additional event handling setup
-
 	glfwSetKeyCallback( window, &glfw_callback_key_ );
+    glfwSetCursorPosCallback( window, &glfw_callback_motion_ );
+    glfwSetMouseButtonCallback( window, &glfw_callback_mouse_ );
+
+    State_ state {};
+
+    // This allows us to access 'state' without making it global
+    glfwSetWindowUserPointer( window, &state );
+
+    state.camControl.cameraActive = false;
 
 	// Set up drawing stuff
 	glfwMakeContextCurrent( window );
@@ -141,6 +160,8 @@ int main() try
 		{ GL_VERTEX_SHADER, "assets/cw2/default.vert" },
 		{ GL_FRAGMENT_SHADER, "assets/cw2/default.frag" }
 	} );
+
+    state.prog = &prog;
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -195,7 +216,7 @@ int main() try
             1, GL_TRUE, normalMatrix.v
         );
 
-        Vec3f lightDir = normalize( Vec3f{ -1.f, 1.f, 0.5f } );
+        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
         glUniform3fv( 1, 1, &lightDir.x );
 
         glUniform3f( 2, 0.9f, 0.9f, 0.6f );
@@ -212,6 +233,8 @@ int main() try
 
 	// Cleanup.
 	//TODO: additional cleanup
+    glBindVertexArray( 0 );
+    glUseProgram( 0 );
 	
 	return 0;
 }
@@ -238,7 +261,32 @@ namespace
 			glfwSetWindowShouldClose( aWindow, GLFW_TRUE );
 			return;
 		}
+
 	}
+
+
+    void glfw_callback_motion_( GLFWwindow* aWindow, double aMouseXPos, double aMouseYPos )
+    {
+    }
+
+    void glfw_callback_mouse_( GLFWwindow* aWindow, int aButton, int aAction, int aMods )
+    {
+		if ( auto* state = static_cast<State_*>(glfwGetWindowUserPointer( aWindow )) )
+		{
+            std::printf("Right button pressed\n");
+            if( GLFW_MOUSE_BUTTON_RIGHT == aButton && GLFW_PRESS == aAction ) {
+
+                // Toggle camera control
+                state->camControl.cameraActive = !state->camControl.cameraActive;
+
+                // Hide / Show cursor
+                if (state->camControl.cameraActive)
+                    glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                else
+                    glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+        }
+    }
 
 }
 
