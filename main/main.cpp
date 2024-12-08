@@ -13,6 +13,7 @@
 #include "../support/checkpoint.hpp"
 #include "../support/debug_output.hpp"
 
+#include "../vmlib/vec3.hpp"
 #include "../vmlib/vec4.hpp"
 #include "../vmlib/mat44.hpp"
 #include "../vmlib/mat33.hpp"
@@ -24,6 +25,7 @@ namespace
 {
 	constexpr char const* kWindowTitle = "COMP3811 - CW2";
 
+	constexpr float kMovementPerSecond_ = 5.f; // units per second
     constexpr float kMouseSensitivity_ = 0.1f; // radians per pixel
 
     float fbwidth, fbheight;
@@ -35,8 +37,18 @@ namespace
         struct CamCtrl_ {
             bool cameraActive;
 
+			bool actionMoveForward;
+			bool actionMoveBackward;
+			bool actionMoveLeft;
+			bool actionMoveRight;
+			bool actionMoveUp;
+			bool actionMoveDown;
+
+			Vec3f position;
+
             float pitch;    // Looking left / right
             float yaw;      // Looking up / down
+			
 
         } camControl;
 
@@ -169,6 +181,13 @@ int main() try
 	int iwidth, iheight;
 	glfwGetFramebufferSize( window, &iwidth, &iheight );
 
+	float wscale = 1.f, hscale = 1.f;
+#   if defined(__APPLE__)
+    	glfwGetWindowContentScale( window, &wscale, &hscale );
+#   endif
+    iwidth = int(iwidth/wscale);
+    iheight = int(iheight/hscale);
+
 	glViewport( 0, 0, iwidth, iheight );
 
 	// Load shader program
@@ -195,6 +214,7 @@ int main() try
     state.camControl.pitch = 0.f;
     state.camControl.yaw = 0.f;
     state.deltaTime = 0.1f;
+	state.camControl.position = { 0.f, 0.f, 0.f };
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -242,11 +262,29 @@ int main() try
 		//TODO: update state
         Mat44f model2world = kIdentity44f;
 
-        Mat44f Rx = make_rotation_x( state.camControl.pitch );
-        Mat44f Ry = make_rotation_y( state.camControl.yaw );
-        Mat44f T = make_translation( Vec3f { 0.f, -3.f, -3.f });
 
-        Mat44f world2camera = Rx * Ry * T;
+		Mat44f Rx = make_rotation_x( state.camControl.pitch );
+        Mat44f Ry = make_rotation_y( state.camControl.yaw );
+
+
+		// have to somehow make it so when w pressed it moves in the cameras direction
+		// Use yaw and pitch to calculate the direction the camera is facing
+		// store the facing direction in CAMCONTROL???
+		float velocity = kMovementPerSecond_ * state.deltaTime;
+
+		if (state.camControl.actionMoveUp) {
+			state.camControl.position.y += velocity;
+		}
+		if (state.camControl.actionMoveDown) {
+			state.camControl.position.y -= velocity;
+		}
+
+		// negative as you move the world around the camera
+        Mat44f T = make_translation( -state.camControl.position );
+
+		
+        Mat44f world2camera = T * Rx * Ry;
+
 
         Mat44f projection = make_perspective_projection(
             60.f * std::numbers::pi_v<float> / 180.f,
@@ -320,6 +358,50 @@ namespace
 			return;
 		}
 
+		if( auto* state = static_cast<State_*>(glfwGetWindowUserPointer( aWindow )) )
+		{
+			// Camera controls if camera is active
+			if( state->camControl.cameraActive )
+			{
+				if (GLFW_KEY_W == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveForward = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveForward = false;
+				}
+				else if (GLFW_KEY_A == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveLeft = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveLeft = false;
+				}
+				else if (GLFW_KEY_S == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveBackward = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveBackward = false;
+				}
+				else if (GLFW_KEY_D == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveRight = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveRight = false;
+				}
+				else if (GLFW_KEY_E == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveUp = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveUp = false;
+				}
+				else if (GLFW_KEY_Q == aKey) {
+					if (GLFW_PRESS == aAction)
+						state->camControl.actionMoveDown = true;
+					else if (GLFW_RELEASE == aAction)
+						state->camControl.actionMoveDown = false;
+				}
+			}
+		}
+
 	}
 
 
@@ -335,16 +417,17 @@ namespace
              */
 
             if (state->camControl.cameraActive) {
-                float dx = (float)aMouseXPos - fbwidth/2.f;
-                float dy = (float)aMouseYPos - fbheight/2.f;
+
+				auto const dx = float(aMouseXPos - fbwidth/2.f) * kMouseSensitivity_;
+            	auto const dy = float(aMouseYPos - fbheight/2.f) * kMouseSensitivity_;
 
                 // Update pitch and yaw
                 // Multiplying by deltaTime ensures smooth camera movement independent of framerate
-                state->camControl.yaw += dx * kMouseSensitivity_ * (float)state->deltaTime;
-                state->camControl.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
+                state->camControl.yaw += dx * float(state->deltaTime);
+                state->camControl.pitch += dy * float(state->deltaTime);
 
                 // Clamp pitch
-                const float maxPitch = std::numbers::pi_v<float> / 2.0f;
+                const float maxPitch = std::numbers::pi_v<float> / 2.f;
                 if (state->camControl.pitch > maxPitch)
                     state->camControl.pitch = maxPitch;
                 else if (state->camControl.pitch < -maxPitch)
