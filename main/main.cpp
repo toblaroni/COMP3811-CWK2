@@ -191,6 +191,19 @@ int main() try
 		{ GL_FRAGMENT_SHADER, "assets/cw2/default.frag" }
 	} );
 
+
+    // FIX FOR 4.1
+	GLint uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
+	GLint uNormalMatrixLocation = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uLightDirLocation = glGetUniformLocation(prog.programId(), "uLightDir");
+	GLint uLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uLightDiffuse");
+	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+
+	// Ensure the locations are valid
+	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 || uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+		std::fprintf(stderr, "Error: Uniform location not found\n");
+	}
+
     // Initialise state
     state.prog = &prog;
     state.camControl.cameraActive = false;
@@ -284,20 +297,20 @@ int main() try
         glUseProgram( prog.programId() );
 
         glUniformMatrix4fv(
-            0,
+            uProjCameraWorldLocation,
             1, GL_TRUE, projCameraWorld.v
         );
 
         glUniformMatrix3fv(
-            1,
+            uNormalMatrixLocation,
             1, GL_TRUE, normalMatrix.v
         );
 
         Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-        glUniform3fv( 2, 1, &lightDir.x );
+        glUniform3fv( uLightDirLocation, 1, &lightDir.x );
 
-        glUniform3f( 3, 0.9f, 0.9f, 0.6f );
-        glUniform3f( 4, 0.05f, 0.05f, 0.05f );
+        glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
+        glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
 
         glBindVertexArray( vao );
         glDrawArrays( GL_TRIANGLES, 0, vertexCount );
