@@ -8,6 +8,8 @@ uniform vec3 uLightDir;
 uniform vec3 uLightDiffuse;
 uniform vec3 uSceneAmbient;
 
+uniform bool uUseTexture;
+
 layout( location = 0 ) out vec3 oColor;
 
 layout( binding = 0 ) uniform sampler2D uTexture;
@@ -18,7 +20,13 @@ void main()
 
     float nDotL = max( 0.0, dot( normal, uLightDir ) );
 
-    oColor = texture( uTexture, v2fTexCoord ).rgb;
+    if (uUseTexture) {
+        oColor = texture( uTexture, v2fTexCoord ).rgb;
+    } else {
+        oColor = (uSceneAmbient + nDotL * uLightDiffuse) * v2fColor;
+    }
+
+    // oColor = texture( uTexture, v2fTexCoord ).rgb;
     // oColor = (uSceneAmbient + nDotL * uLightDiffuse) * v2fColor;
     // oColor = v2fColor
 }

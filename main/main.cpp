@@ -42,6 +42,7 @@ namespace
          */
         struct CamCtrl_ {
             bool cameraActive;
+            bool topDown;
 
             bool moveFast;
             bool moveSlow;
@@ -208,15 +209,18 @@ int main() try
 	GLint uLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uLightDiffuse");
 	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
 
+    GLint uUseTextureLocation = glGetUniformLocation(prog.programId(), "uUseTexture");
+
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
-        uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+        uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1 || uUseTextureLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
 
     // Initialise state
     state.prog = &prog;
     state.camControl.cameraActive = false;
+    state.camControl.topDown = false;
     state.camControl.pitch = 0.f;
     state.camControl.yaw = std::numbers::pi_v<float> / -2.f;    // Give default of -90 degrees
     state.deltaTime = 0.1f;
@@ -238,8 +242,14 @@ int main() try
 
     // Load the terrain and add to VAO
     auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
-    GLuint vao = create_vao(langersoMesh);
-    std::size_t vertexCount = langersoMesh.positions.size();
+    GLuint langersoVao = create_vao(langersoMesh);
+    std::size_t langersoVertexCount = langersoMesh.positions.size();
+
+    // Load the landing pad mesh and create VAO
+    auto landingPadMesh = load_wavefront_obj("assets/cw2/landingpad.obj");
+    GLuint landingPadVao = create_vao( landingPadMesh );
+    std::size_t landingPadVertexCount = landingPadMesh.positions.size();
+    
 
 
     auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
@@ -303,6 +313,18 @@ int main() try
         Mat44f projCameraWorld = projection * world2camera * model2world;
         Mat33f normalMatrix = mat44_to_mat33(model2world);
 
+        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
+
+        // Translations and projection for first launchpad
+        Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+        Mat44f projCameraWorld2 = projection * world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix2 = mat44_to_mat33(model2worldLaunchpad);
+
+        Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
+        Mat44f projCameraWorld3 = projection * world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix3 = mat44_to_mat33(model2worldLaunchpad2);
+
+
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
@@ -320,17 +342,55 @@ int main() try
             1, GL_TRUE, normalMatrix.v
         );
 
-        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
         glUniform3fv( uLightDirLocation, 1, &lightDir.x );
-
         glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
         glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
 
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, textureObjectId );
 
-        glBindVertexArray( vao );
-        glDrawArrays( GL_TRIANGLES, 0, vertexCount );
+        glBindVertexArray( langersoVao );
+
+        glUniform1i(uUseTextureLocation, 1);
+        glDrawArrays( GL_TRIANGLES, 0, langersoVertexCount );
+
+
+
+        // Bind landing pad
+        glBindVertexArray( landingPadVao );
+
+        // Draw first landing pad
+        glUniformMatrix4fv(
+            uProjCameraWorldLocation,
+            1, GL_TRUE, projCameraWorld2.v
+        );
+        glUniformMatrix3fv(
+            uNormalMatrixLocation,
+            1, GL_TRUE, normalMatrix2.v
+        );
+
+        glUniform1i(uUseTextureLocation, 0);
+        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
+
+
+        // Draw second landing pad
+        glUniformMatrix4fv(
+            uProjCameraWorldLocation,
+            1, GL_TRUE, projCameraWorld3.v
+        );
+        glUniformMatrix3fv(
+            uNormalMatrixLocation,
+            1, GL_TRUE, normalMatrix3.v
+        );
+        glUniform1i(uUseTextureLocation, 0);
+        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
+
+
+
+
+
+
+
 
 		OGL_CHECKPOINT_DEBUG();
 
