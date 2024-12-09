@@ -4,6 +4,8 @@ SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
 {
 	aM.positions.insert( aM.positions.end(), aN.positions.begin(), aN.positions.end() );
 	aM.colors.insert( aM.colors.end(), aN.colors.begin(), aN.colors.end() );
+    aM.texcoords.insert( aM.texcoords.end(), aN.texcoords.begin(), aN.texcoords.end() );
+    aM.normals.insert( aM.normals.end(), aN.normals.begin(), aN.normals.end() );
 	return aM;
 }
 
@@ -20,6 +22,18 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
         GL_ARRAY_BUFFER, 
         aMeshData.positions.size() * sizeof(Vec3f),
         aMeshData.positions.data(),     // This gives us the raw pointer to underlying data
+        GL_STATIC_DRAW 
+    );
+
+    // Do the same for colors
+    GLuint texCoordVBO = 0;
+    glGenBuffers( 1, &texCoordVBO );
+
+    glBindBuffer( GL_ARRAY_BUFFER, texCoordVBO );
+    glBufferData( 
+        GL_ARRAY_BUFFER, 
+        aMeshData.texcoords.size() * sizeof(Vec2f),
+        aMeshData.texcoords.data(),
         GL_STATIC_DRAW 
     );
 
@@ -71,9 +85,18 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
     );
     glEnableVertexAttribArray( 1 );
 
-    glBindBuffer( GL_ARRAY_BUFFER, normalsVBO );
+    glBindBuffer( GL_ARRAY_BUFFER, texCoordVBO );
     glVertexAttribPointer(
         2,
+        2, GL_FLOAT, GL_FALSE,
+        0,
+        nullptr
+    );
+    glEnableVertexAttribArray( 1 );
+
+    glBindBuffer( GL_ARRAY_BUFFER, normalsVBO );
+    glVertexAttribPointer(
+        3,
         3, GL_FLOAT, GL_FALSE,
         0,
         0

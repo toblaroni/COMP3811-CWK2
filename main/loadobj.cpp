@@ -37,6 +37,13 @@ SimpleMeshData load_wavefront_obj( char const* aPath )
                 mat.diffuse[2],
             });
 
+            // Extract texture coordinate (vt)
+            ret.texcoords.emplace_back(Vec2f {
+                result.attributes.texcoords[idx.texcoord_index * 2 + 0], // `u`
+                result.attributes.texcoords[idx.texcoord_index * 2 + 1]  // `v`
+            });
+
+
             ret.normals.emplace_back( Vec3f {
                 result.attributes.normals[idx.normal_index*3+0],    // Use normal index 
                 result.attributes.normals[idx.normal_index*3+1],

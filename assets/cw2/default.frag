@@ -1,6 +1,7 @@
 #version 410
 
 in vec3 v2fColor;
+in vec3 v2fTexCoord;
 in vec3 v2fNormal;
 
 uniform vec3 uLightDir;
