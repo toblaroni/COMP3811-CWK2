@@ -465,6 +465,21 @@ namespace
 
         if (auto *state = static_cast<State_ *>(glfwGetWindowUserPointer(aWindow)))
         {
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_T) {
+                // REMOVE BEFORE SUBMISSION
+                // Press T to toggle topdown view
+                if (state->camControl.topDown) {
+                    state->camControl.cameraPos = { 0.f, 20.f, 0.f };
+                    state->camControl.cameraFront = { 0.f, -1.f, 0.f };
+                    state->camControl.cameraUp = { 0.f, 0.f, 1.f };
+                } else {
+                    state->camControl.cameraPos = { 0.f, 3.f, 3.f };
+                    state->camControl.cameraFront = Vec3f { 0.f, 0.f, -1.f };
+                    state->camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
+                }
+                state->camControl.topDown = !state->camControl.topDown;
+            }
+
             if (aAction == GLFW_PRESS || aAction == GLFW_RELEASE) 
             {
                 bool isPressed = (aAction == GLFW_PRESS);
@@ -525,7 +540,7 @@ namespace
                 state->camControl.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
 
                 // Clamp pitch
-                const float maxPitch = std::numbers::pi_v<float> / 2.0f;
+                const float maxPitch =  89.f * std::numbers::pi_v<float> / 180.f;
                 if (state->camControl.pitch > maxPitch)
                     state->camControl.pitch = maxPitch;
                 else if (state->camControl.pitch < -maxPitch)
