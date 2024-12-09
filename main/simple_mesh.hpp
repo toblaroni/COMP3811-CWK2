@@ -7,15 +7,25 @@
 
 #include "../vmlib/vec3.hpp"
 
+// 
+struct Material {
+	Vec3f ambient;		// Ka
+	Vec3f diffuse;		// Kd
+	Vec3f specular;		// Ks
+	float shininess;	// Ns
+	Vec3f emissive;		// Ke
+	float illum;			// Illumination model
+};
+
 struct SimpleMeshData
 {
 	std::vector<Vec3f> positions;
-	std::vector<Vec3f> colors;
 	std::vector<Vec3f> normals;
+	std::vector<int> material_ids;
+	std::vector<Material> materials;
 };
 
 SimpleMeshData concatenate( SimpleMeshData, SimpleMeshData const& );
-
 
 GLuint create_vao( SimpleMeshData const& );
 

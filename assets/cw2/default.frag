@@ -16,6 +16,5 @@ void main()
     float nDotL = max( 0.0, dot( normal, uLightDir ) );
 
     oColor = (uSceneAmbient + nDotL * uLightDiffuse) * v2fColor;
-    // oColor = v2fColor
 }
 
