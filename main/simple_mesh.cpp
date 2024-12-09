@@ -16,7 +16,6 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
     GLuint positionVBO = 0;
     glGenBuffers( 1, &positionVBO );
 
-    // Then we need to bind the buffer
     glBindBuffer( GL_ARRAY_BUFFER, positionVBO );
     glBufferData( 
         GL_ARRAY_BUFFER, 
@@ -92,7 +91,7 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
         0,
         nullptr
     );
-    glEnableVertexAttribArray( 1 );
+    glEnableVertexAttribArray( 2 );
 
     glBindBuffer( GL_ARRAY_BUFFER, normalsVBO );
     glVertexAttribPointer(
@@ -101,7 +100,7 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
         0,
         0
     );
-    glEnableVertexAttribArray( 2 );
+    glEnableVertexAttribArray( 3 );
 
     // Cleanup
     glBindVertexArray( 0 );

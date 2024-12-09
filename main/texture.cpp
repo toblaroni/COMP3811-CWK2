@@ -20,7 +20,7 @@ GLuint load_texture_2d( char const* aPath )
 	if( !ptr )
 		throw Error( "Unable to load image ’%s’\n", aPath );
 
-		// Generate texture object and initialize texture with image
+	// Generate texture object and initialize texture with image
 
 	GLuint tex = 0;
 	glGenTextures( 1, &tex );
