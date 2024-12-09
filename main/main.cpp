@@ -19,6 +19,7 @@
 
 #include "defaults.hpp"
 #include "loadobj.hpp"
+#include "texture.hpp"
 
 namespace
 {
@@ -240,6 +241,10 @@ int main() try
     GLuint vao = create_vao(langersoMesh);
     std::size_t vertexCount = langersoMesh.positions.size();
 
+
+    auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
+
+
     double last = glfwGetTime();
 
 	// Main loop
@@ -320,6 +325,9 @@ int main() try
 
         glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
         glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
+
+        glActiveTexture( GL_TEXTURE0 );
+        glBindTexture( GL_TEXTURE_2D, textureObjectId );
 
         glBindVertexArray( vao );
         glDrawArrays( GL_TRIANGLES, 0, vertexCount );

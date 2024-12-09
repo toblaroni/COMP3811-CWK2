@@ -5,12 +5,14 @@
 
 #include <vector>
 
+#include "../vmlib/vec2.hpp"
 #include "../vmlib/vec3.hpp"
 
 struct SimpleMeshData
 {
 	std::vector<Vec3f> positions;
 	std::vector<Vec3f> colors;
+	std::vector<Vec2f> texcoords;
 	std::vector<Vec3f> normals;
 };
 
