@@ -104,8 +104,16 @@ int main() try
 
 	//glfwWindowHint( GLFW_RESIZABLE, GLFW_FALSE );
 
+	#if !defined(__APPLE__)
+	// Most platforms will support OpenGL 4.3
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+	#else 
+	// Apple has at most OpenGL 4.1, so don't ask for something newer.
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
+	#endif // ~__APPLE__
+
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
