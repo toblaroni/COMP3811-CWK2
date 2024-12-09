@@ -24,7 +24,7 @@ namespace
 {
 	constexpr char const* kWindowTitle = "COMP3811 - CW2";
 
-    constexpr float kMovementPerSecond_ = 5.f; // units per second
+    constexpr float kMovementPerSecond_ = 3.f; // units per second
     constexpr float kMouseSensitivity_ = 0.05f; // radians per pixel
 
     float fbwidth, fbheight;
@@ -200,7 +200,8 @@ int main() try
 	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
 
 	// Ensure the locations are valid
-	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 || uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
+        uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
 
@@ -282,8 +283,8 @@ int main() try
 
         Mat44f projection = make_perspective_projection(
             60.f * std::numbers::pi_v<float> / 180.f,
-            fbwidth / float(fbheight),
-            0.1f, 100.0f
+            fbwidth / float(fbheight),  // Aspect ratio
+            0.1f, 100.0f        // Near / far 
         );
 
         Mat44f projCameraWorld = projection * world2camera * model2world;

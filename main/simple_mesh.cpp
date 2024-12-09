@@ -35,6 +35,19 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
         GL_STATIC_DRAW 
     );
 
+    // Normals
+    GLuint normalsVBO = 0;
+    glGenBuffers( 1, &normalsVBO );
+
+    glBindBuffer( GL_ARRAY_BUFFER, normalsVBO );
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        aMeshData.normals.size() * sizeof(Vec3f),
+        aMeshData.normals.data(),
+        GL_STATIC_DRAW
+    );
+
+
     // Generate VAO, define attributes
     GLuint vao = 0;
     glGenVertexArrays( 1, &vao );
@@ -58,9 +71,20 @@ GLuint create_vao( SimpleMeshData const& aMeshData )
     );
     glEnableVertexAttribArray( 1 );
 
+    glBindBuffer( GL_ARRAY_BUFFER, normalsVBO );
+    glVertexAttribPointer(
+        2,
+        3, GL_FLOAT, GL_FALSE,
+        0,
+        0
+    );
+    glEnableVertexAttribArray( 2 );
+
     // Cleanup
     glBindVertexArray( 0 );
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+    // Delete buffers??
 
     return vao;
 }
