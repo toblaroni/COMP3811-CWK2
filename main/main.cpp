@@ -19,6 +19,7 @@
 
 #include "defaults.hpp"
 #include "loadobj.hpp"
+#include "simple_mesh.hpp"
 
 namespace
 {
@@ -41,6 +42,7 @@ namespace
          */
         struct CamCtrl_ {
             bool cameraActive;
+            bool topDown;
 
             bool moveFast;
             bool moveSlow;
@@ -216,6 +218,7 @@ int main() try
     // Initialise state
     state.prog = &prog;
     state.camControl.cameraActive = false;
+    state.camControl.topDown = false;
     state.camControl.pitch = 0.f;
     state.camControl.yaw = std::numbers::pi_v<float> / -2.f;    // Give default of -90 degrees
     state.deltaTime = 0.1f;
@@ -237,8 +240,13 @@ int main() try
 
     // Load the terrain and add to VAO
     auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
-    GLuint vao = create_vao(langersoMesh);
-    std::size_t vertexCount = langersoMesh.positions.size();
+    GLuint langersoVao = create_vao(langersoMesh);
+    std::size_t langersoVertexCount = langersoMesh.positions.size();
+
+    // Load the landing pad mesh and create VAO
+    auto landingPadMesh = load_wavefront_obj("assets/cw2/landingpad.obj");
+    GLuint landingPadVao = create_vao( landingPadMesh );
+    std::size_t landingPadVertexCount = landingPadMesh.positions.size();
 
     double last = glfwGetTime();
 
@@ -298,6 +306,15 @@ int main() try
         Mat44f projCameraWorld = projection * world2camera * model2world;
         Mat33f normalMatrix = mat44_to_mat33(model2world);
 
+        // Translations and projection for first launchpad
+        Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+        Mat44f projCameraWorld2 = projection * world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix2 = mat44_to_mat33(model2worldLaunchpad);
+
+        Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
+        Mat44f projCameraWorld3 = projection * world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix3 = mat44_to_mat33(model2worldLaunchpad2);
+
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
@@ -321,8 +338,36 @@ int main() try
         glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
         glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
 
-        glBindVertexArray( vao );
-        glDrawArrays( GL_TRIANGLES, 0, vertexCount );
+        glBindVertexArray( langersoVao );
+        glDrawArrays( GL_TRIANGLES, 0, langersoVertexCount );
+
+        // Draw first landing pad
+        glBindVertexArray( landingPadVao );
+
+        glUniformMatrix4fv(
+            uProjCameraWorldLocation,
+            1, GL_TRUE, projCameraWorld2.v
+        );
+
+        glUniformMatrix3fv(
+            uNormalMatrixLocation,
+            1, GL_TRUE, normalMatrix2.v
+        );
+
+        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
+
+        // Draw second landing pad
+        glUniformMatrix4fv(
+            uProjCameraWorldLocation,
+            1, GL_TRUE, projCameraWorld3.v
+        );
+
+        glUniformMatrix3fv(
+            uNormalMatrixLocation,
+            1, GL_TRUE, normalMatrix3.v
+        );
+
+        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
 
 		OGL_CHECKPOINT_DEBUG();
 
@@ -375,6 +420,12 @@ namespace
             state->camControl.cameraPos.y -= velocity;
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
+
+        std::printf(
+            "%f, %f\n",
+            state->camControl.cameraPos.x,
+            state->camControl.cameraPos.z
+        );
     }
 }
 
@@ -397,6 +448,20 @@ namespace
 
         if (auto *state = static_cast<State_ *>(glfwGetWindowUserPointer(aWindow)))
         {
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_T) {
+                // REMOVE BEFORE SUBMISSION
+                // Press T to toggle topdown view
+                if (state->camControl.topDown) {
+                    state->camControl.cameraPos = { 0.f, 20.f, 0.f };
+                    state->camControl.cameraFront = { 0.f, -1.f, 0.f };
+                    state->camControl.cameraUp = { 0.f, 0.f, 1.f };
+                } else {
+                    state->camControl.cameraPos = { 0.f, 3.f, 3.f };
+                    state->camControl.cameraFront = Vec3f { 0.f, 0.f, -1.f };
+                    state->camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
+                }
+                state->camControl.topDown = !state->camControl.topDown;
+            }
             if (aAction == GLFW_PRESS || aAction == GLFW_RELEASE) 
             {
                 bool isPressed = (aAction == GLFW_PRESS);
@@ -431,7 +496,6 @@ namespace
                 }
             }
         }
-
 	}
 
 
@@ -457,7 +521,7 @@ namespace
                 state->camControl.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
 
                 // Clamp pitch
-                const float maxPitch = std::numbers::pi_v<float> / 2.0f;
+                const float maxPitch =  89.f * std::numbers::pi_v<float> / 180.f;
                 if (state->camControl.pitch > maxPitch)
                     state->camControl.pitch = maxPitch;
                 else if (state->camControl.pitch < -maxPitch)

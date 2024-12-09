@@ -165,6 +165,7 @@ Mat44f make_perspective_projection( float aFovInRadians, float aAspect, float aN
 }
 
 // https://learnopengl.com/Getting-started/Camera
+inline
 Mat44f look_at( Vec3f pos, Vec3f target, Vec3f up ) {
 
     Vec3f cameraDirection = normalize(pos - target);
