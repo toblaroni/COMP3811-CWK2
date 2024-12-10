@@ -268,7 +268,7 @@ int main() try
         make_translation( { 0.f, 0.5f, 0.f } ) * make_scaling(.1f, .2f, .1f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
     );
 
-    auto body = make_cylinder( 
+    auto middle = make_cylinder( 
         true, 16, { 0.5f, 0.5f, 0.5f },
         make_translation( { 0.f, 0.2f, 0.f } ) * make_scaling(.1f, .3f, .1f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
     );
@@ -294,26 +294,73 @@ int main() try
         make_translation( { -0.04f, 0.17f, -0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
     );
 
-    auto leg1 = make_cube( 
-        { 0.1f, 0.1f, 0.1f },
-        make_shearing(0.f, 0.f, 0.f, 0.5f, 0.f, 0.f) * make_scaling(.01f, .25f, .1f) * make_rotation_y(0.25f * std::numbers::pi_v<float>) * make_rotation_z(0.5f * std::numbers::pi_v<float>) * make_translation( { 0.f, 0.8f, 0.f } )
+
+    auto leg1 = make_cylinder( 
+        true, 16, { 1.f, 0.1f, 0.1f },
+        make_translation( { 0.15f, 0.05f, 0.15f } ) *
+        make_rotation_y(-0.75f * std::numbers::pi_v<float>) *
+        make_rotation_x(0.15f * std::numbers::pi_v<float>) *
+        make_shearing(0.f, 0.f, 0.f, 1.f, 0.f, 0.f) *
+        make_scaling(.01f, .25f, .05f) * make_rotation_z(0.5f *std::numbers::pi_v<float>)
     );
 
-    auto shaft = concatenate(top, body);
+
+    auto leg2 = make_cylinder( 
+        true, 16, { 1.f, 0.1f, 0.1f },
+        make_translation( { -0.15f, 0.05f, -0.15f } ) *
+        make_rotation_y(0.25f * std::numbers::pi_v<float>) *
+        make_rotation_x(0.15f * std::numbers::pi_v<float>) *
+        make_shearing(0.f, 0.f, 0.f, 1.f, 0.f, 0.f) *
+        make_scaling(.01f, .25f, .05f) * make_rotation_z(0.5f *std::numbers::pi_v<float>)
+    );
+
+    auto leg3 = make_cylinder( 
+        true, 16, { 1.f, 0.1f, 0.1f },
+        make_translation( { -0.15f, 0.05f, 0.15f } ) *
+        make_rotation_y(0.75f * std::numbers::pi_v<float>) *
+        make_rotation_x(0.15f * std::numbers::pi_v<float>) *
+        make_shearing(0.f, 0.f, 0.f, 1.f, 0.f, 0.f) *
+        make_scaling(.01f, .25f, .05f) * make_rotation_z(0.5f *std::numbers::pi_v<float>)
+    );
+
+
+    auto leg4 = make_cylinder( 
+        true, 16, { 1.f, 0.1f, 0.1f },
+        make_translation( { 0.15f, 0.05f, -0.15f } ) *
+        make_rotation_y(-0.25f * std::numbers::pi_v<float>) *
+        make_rotation_x(0.15f * std::numbers::pi_v<float>) *
+        make_shearing(0.f, 0.f, 0.f, 1.f, 0.f, 0.f) *
+        make_scaling(.01f, .25f, .05f) * make_rotation_z(0.5f *std::numbers::pi_v<float>)
+    );
+
+    auto point = make_cube( 
+        { 1.f, 0.1f, 0.1f },
+        make_translation( { 0.f, 0.7f, 0.f } ) * make_scaling(.025f, .025f, .025f)
+    );    
+
+
+
+
+
+
+
+
+    auto upper = concatenate(top, point);
+
+    auto shaft = concatenate(upper, middle);
 
     auto b12 = concatenate(booster1, booster2);
     auto b34 = concatenate(booster3, booster4);
     auto boosters = concatenate(b12, b34);
 
-    // auto l12 = concatenate(leg1, leg2);
-    // auto l34 = concatenate(leg3, leg4);
-    // auto legs = concatenate(l12, l34);
-    auto legs = leg1;
+    auto l12 = concatenate(leg1, leg2);
+    auto l34 = concatenate(leg3, leg4);
+    auto legs = concatenate(l12, l34);
 
 
-    auto rocket = concatenate(shaft, legs);
+    auto body = concatenate(shaft, legs);
 
-    auto vehicle = concatenate(rocket, boosters);
+    auto vehicle = concatenate(body, boosters);
 
 
 
@@ -400,7 +447,7 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
-        glUniform3f( uLightPosLocation, -7.f, 5.f, 7.f );       // This is in world space
+        glUniform3f( uLightPosLocation, 0.f, 5.f, 0.f );       // This is in world space
         glUniform3f( uLightDiffuseLocation, 1.f, 1.f, 0.f );
         glUniform3f( uLightSpecularLocation, 1.f, 1.f, 1.f );
         glUniform3f( uSceneAmbientLocation, 0.2f, 0.2f, 0.2f );
