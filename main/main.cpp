@@ -207,18 +207,24 @@ int main() try
 
     // FIX FOR 4.1
 	GLint uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
-	GLint uNormalMatrixLocation = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-	GLint uLightDirLocation = glGetUniformLocation(prog.programId(), "uLightDir");
-	GLint uLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uLightDiffuse");
-	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+	GLint uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uLightPosLocation        = glGetUniformLocation(prog.programId(), "uLightPos");
+	GLint uLightDiffuseLocation    = glGetUniformLocation(prog.programId(), "uLightDiffuse");
+	GLint uLightSpecularLocation   = glGetUniformLocation(prog.programId(), "uLightSpecular");
+	GLint uSceneAmbientLocation    = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+	GLint uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
+	GLint uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
 
-    GLint uUseTextureLocation = glGetUniformLocation(prog.programId(), "uUseTexture");
 
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
-        uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1 || uUseTextureLocation == -1) {
+        uLightPosLocation == -1 || uLightDiffuseLocation == -1 ||
+        uSceneAmbientLocation == -1 || uViewMatrixLocation == -1 || 
+        uLightSpecularLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
+        // Exit here?
 	}
+
 
     // Initialise state
     state.prog = &prog;
@@ -247,13 +253,14 @@ int main() try
     auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
     GLuint langersoVao = create_vao(langersoMesh);
     std::size_t langersoVertexCount = langersoMesh.positions.size();
+
+    // Load the texture
     auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
 
     // Load the landing pad mesh and create VAO
     auto landingPadMesh = load_wavefront_obj("assets/cw2/landingpad.obj");
     GLuint landingPadVao = create_vao( landingPadMesh );
     std::size_t landingPadVertexCount = landingPadMesh.positions.size();
-
 
     // Create Vehicle
     auto top = make_cone( 
@@ -287,15 +294,11 @@ int main() try
         make_translation( { -0.04f, 0.17f, -0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
     );
 
-
-
-
     auto leg1 = make_cube( 
         { 0.1f, 0.1f, 0.1f },
         make_shearing(0.f, 0.f, 0.f, 0.5f, 0.f, 0.f) * make_scaling(.01f, .25f, .1f) * make_rotation_y(0.25f * std::numbers::pi_v<float>) * make_rotation_z(0.5f * std::numbers::pi_v<float>) * make_translation( { 0.f, 0.8f, 0.f } )
     );
 
-    
     auto shaft = concatenate(top, body);
 
     auto b12 = concatenate(booster1, booster2);
@@ -316,13 +319,6 @@ int main() try
 
     GLuint vehicleVao = create_vao( vehicle );
     std::size_t vehicleVertexCount = vehicle.positions.size();
-
-
-
-
-
-
-
 
     double last = glfwGetTime();
 
@@ -382,8 +378,6 @@ int main() try
         Mat44f projCameraWorld = projection * world2camera * model2world;
         Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
 
-        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-
         // Translations and projection for first launchpad
         Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
         Mat44f projCameraWorld_LP1 = projection * world2camera * model2worldLaunchpad;
@@ -406,6 +400,16 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
+        glUniform3f( uLightPosLocation, -7.f, 5.f, 7.f );       // This is in world space
+        glUniform3f( uLightDiffuseLocation, 1.f, 1.f, 0.f );
+        glUniform3f( uLightSpecularLocation, 1.f, 1.f, 1.f );
+        glUniform3f( uSceneAmbientLocation, 0.2f, 0.2f, 0.2f );
+
+        glUniformMatrix4fv(
+            uViewMatrixLocation,
+            1, GL_TRUE, world2camera.v
+        );
+
         glUniformMatrix4fv(
             uProjCameraWorldLocation,
             1, GL_TRUE, projCameraWorld.v
@@ -416,19 +420,16 @@ int main() try
             1, GL_TRUE, normalMatrix.v
         );
 
-        glUniform3fv( uLightDirLocation, 1, &lightDir.x );
-        glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
-        glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
+        glUniform1i(uUseTextureLocation, GL_TRUE);
 
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, textureObjectId );
 
         glBindVertexArray( langersoVao );
 
-        glUniform1i(uUseTextureLocation, true);
         glDrawArrays( GL_TRIANGLES, 0, langersoVertexCount );
 
-
+        glUniform1i(uUseTextureLocation, GL_FALSE);
 
         // Bind landing pad VAO
         glBindVertexArray( landingPadVao );
@@ -443,7 +444,6 @@ int main() try
             1, GL_TRUE, normalMatrix_LP1.v
         );
 
-        glUniform1i(uUseTextureLocation, false);
         glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
 
 
@@ -456,9 +456,7 @@ int main() try
             uNormalMatrixLocation,
             1, GL_TRUE, normalMatrix_LP2.v
         );
-        glUniform1i(uUseTextureLocation, false);
         glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
-
 
         // Bind Vehicle VAO
         glBindVertexArray( vehicleVao );
@@ -473,14 +471,7 @@ int main() try
             1, GL_TRUE, normalMatrix_V.v
         );
 
-        glUniform1i(uUseTextureLocation, false);
         glDrawArrays( GL_TRIANGLES, 0, vehicleVertexCount );
-
-
-
-
-
-
 
 		OGL_CHECKPOINT_DEBUG();
 
@@ -533,6 +524,8 @@ namespace
             state->camControl.cameraPos.y -= velocity;
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
+
+        // std::printf("%f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.z);
     }
 }
 
@@ -604,7 +597,6 @@ namespace
                 }
             }
         }
-
 	}
 
 

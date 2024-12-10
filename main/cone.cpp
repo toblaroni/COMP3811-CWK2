@@ -52,6 +52,10 @@ SimpleMeshData make_cone( bool aCapped, std::size_t aSubdivs, Vec3f aColor, Mat4
 
     std::vector<Vec3f> col( pos.size(), aColor );
 
-    return SimpleMeshData{ std::move(pos), std::move(col), {{}}, std::move(normals) };
+    std::vector<Vec2f> texcoords;
+    std::vector<int> material_ids; 
+    std::vector<Material> materials;
+
+    return SimpleMeshData{ std::move(pos), texcoords, std::move(normals), material_ids, materials };
 }
 

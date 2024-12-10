@@ -59,8 +59,9 @@ SimpleMeshData make_cube(Vec3f aColor, Mat44f aPreTransform)
         p = Vec3f{ t.x, t.y, t.z };
     }
 
-    // Generate colors
-    std::vector<Vec3f> col(pos.size(), aColor);
+    std::vector<Vec2f> texcoords;
+    std::vector<int> material_ids; 
+    std::vector<Material> materials;
 
-    return SimpleMeshData{ std::move(pos), std::move(col), {{}}, std::move(normals) };
+    return SimpleMeshData{ std::move(pos), texcoords, std::move(normals), material_ids, materials };
 }
