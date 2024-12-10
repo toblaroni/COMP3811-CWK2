@@ -47,9 +47,7 @@ void main()
     vec3 specular = (pow(hDotN, v2fShininess) * uLightSpecular * v2fSpecular) * spec_modifier * falloff;    // Apply falloff
 
     oColor = ambience + diffuse + specular*spec_modifier + v2fEmissive;
-
     oColor *= v2fIllum;
-
     oColor = clamp(oColor, 0.0, 1.0);
 
 }
