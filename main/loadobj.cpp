@@ -1,5 +1,8 @@
 #include "loadobj.hpp"
 
+#include <cstdio>
+#include <iostream>
+#include <ostream>
 #include <rapidobj/rapidobj.hpp>
 
 #include "../support/error.hpp"
@@ -53,6 +56,8 @@ SimpleMeshData load_wavefront_obj( char const* aPath )
             ret.material_ids.emplace_back( material_id );
         }
     }
+
+
 
     return ret;
 }

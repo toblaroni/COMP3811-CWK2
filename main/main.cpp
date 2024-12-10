@@ -207,14 +207,20 @@ int main() try
 	GLint uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
 	GLint uLightPosLocation        = glGetUniformLocation(prog.programId(), "uLightPos");
 	GLint uLightDiffuseLocation    = glGetUniformLocation(prog.programId(), "uLightDiffuse");
-	GLint uLightSpecular           = glGetUniformLocation(prog.programId(), "uLightSpecular");
+	GLint uLightSpecularLocation   = glGetUniformLocation(prog.programId(), "uLightSpecular");
 	GLint uSceneAmbientLocation    = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+	GLint uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
+
 
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
-        uLightPosLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+        uLightPosLocation == -1 || uLightDiffuseLocation == -1 ||
+        uSceneAmbientLocation == -1 || uViewMatrixLocation == -1 || 
+        uLightSpecularLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
+        // Exit here?
 	}
+
 
     // Initialise state
     state.prog = &prog;
@@ -324,6 +330,11 @@ int main() try
         glUseProgram( prog.programId() );
 
         glUniformMatrix4fv(
+            uViewMatrixLocation,
+            1, GL_TRUE, world2camera.v
+        );
+
+        glUniformMatrix4fv(
             uProjCameraWorldLocation,
             1, GL_TRUE, projCameraWorld.v
         );
@@ -333,12 +344,12 @@ int main() try
             1, GL_TRUE, normalMatrix.v
         );
 
+        glUniform3f( uLightPosLocation, 0.f, 5.f, 0.f );       // This is in world space
+        glUniform3f( uLightDiffuseLocation, 1.f, 1.f, 0.f );
+        glUniform3f( uLightSpecularLocation, 1.f, 1.f, 1.f );
+        glUniform3f( uSceneAmbientLocation, 0.2f, 0.2f, 0.2f );
 
-        glUniform3f( uLightPosLocation, 0.f, 1.f, 0.f );
-        glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
-        glUniform3f( uLightSpecular, 0.5f, 0.5f, 0.5f );
-        glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
-
+        // Draw langerso
         glBindVertexArray( langersoVao );
         glDrawArrays( GL_TRIANGLES, 0, langersoVertexCount );
 
@@ -422,6 +433,8 @@ namespace
             state->camControl.cameraPos.y -= velocity;
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
+
+        // std::printf("%f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.z);
     }
 }
 
