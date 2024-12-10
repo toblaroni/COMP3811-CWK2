@@ -21,7 +21,7 @@ void main()
     float nDotL = max( 0.0, dot( normal, uLightDir ) );
 
     if (uUseTexture) {
-        oColor = texture( uTexture, v2fTexCoord ).rgb;
+        oColor = (uSceneAmbient + nDotL * uLightDiffuse) * texture( uTexture, v2fTexCoord ).rgb;
     } else {
         oColor = (uSceneAmbient + nDotL * uLightDiffuse) * v2fColor;
     }
