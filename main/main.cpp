@@ -18,6 +18,9 @@
 #include "../vmlib/mat33.hpp"
 
 #include "defaults.hpp"
+#include "cube.hpp"
+#include "cone.hpp"
+#include "cylinder.hpp"
 #include "loadobj.hpp"
 #include "texture.hpp"
 
@@ -181,7 +184,7 @@ int main() try
 	// TODO: global GL setup goes here
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_FRAMEBUFFER_SRGB );
-	glEnable( GL_CULL_FACE );
+	//glEnable( GL_CULL_FACE );
 	glClearColor( 0.2f, 0.2f, 0.2f, 0.f );
 
 	OGL_CHECKPOINT_ALWAYS();
@@ -244,15 +247,81 @@ int main() try
     auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
     GLuint langersoVao = create_vao(langersoMesh);
     std::size_t langersoVertexCount = langersoMesh.positions.size();
+    auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
 
     // Load the landing pad mesh and create VAO
     auto landingPadMesh = load_wavefront_obj("assets/cw2/landingpad.obj");
     GLuint landingPadVao = create_vao( landingPadMesh );
     std::size_t landingPadVertexCount = landingPadMesh.positions.size();
+
+
+    // Create Vehicle
+    auto top = make_cone( 
+        true, 16, { 0.1f, 0.1f, 0.1f },
+        make_translation( { 0.f, 0.5f, 0.f } ) * make_scaling(.1f, .2f, .1f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+    auto body = make_cylinder( 
+        true, 16, { 0.5f, 0.5f, 0.5f },
+        make_translation( { 0.f, 0.2f, 0.f } ) * make_scaling(.1f, .3f, .1f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+
+    auto booster1 = make_cone( 
+        false, 16, { 0.1f, 0.1f, 0.1f },
+        make_translation( { 0.04f, 0.17f, 0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+    auto booster2 = make_cone( 
+        false, 16, { 0.1f, 0.1f, 0.1f },
+        make_translation( { 0.04f, 0.17f, -0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+    auto booster3 = make_cone( 
+        false, 16, { 0.1f, 0.1f, 0.1f },
+        make_translation( { -0.04f, 0.17f, 0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+    auto booster4 = make_cone( 
+        false, 16, { 0.1f, 0.1f, 0.1f },
+        make_translation( { -0.04f, 0.17f, -0.04f } ) * make_scaling(.04f, .06f, .04f) * make_rotation_z(0.5f * std::numbers::pi_v<float>)
+    );
+
+
+
+
+    auto leg1 = make_cube( 
+        { 0.1f, 0.1f, 0.1f },
+        make_shearing(0.f, 0.f, 0.f, 0.5f, 0.f, 0.f) * make_scaling(.01f, .25f, .1f) * make_rotation_y(0.25f * std::numbers::pi_v<float>) * make_rotation_z(0.5f * std::numbers::pi_v<float>) * make_translation( { 0.f, 0.8f, 0.f } )
+    );
+
     
+    auto shaft = concatenate(top, body);
+
+    auto b12 = concatenate(booster1, booster2);
+    auto b34 = concatenate(booster3, booster4);
+    auto boosters = concatenate(b12, b34);
+
+    // auto l12 = concatenate(leg1, leg2);
+    // auto l34 = concatenate(leg3, leg4);
+    // auto legs = concatenate(l12, l34);
+    auto legs = leg1;
 
 
-    auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
+    auto rocket = concatenate(shaft, legs);
+
+    auto vehicle = concatenate(rocket, boosters);
+
+
+
+    GLuint vehicleVao = create_vao( vehicle );
+    std::size_t vehicleVertexCount = vehicle.positions.size();
+
+
+
+
+
+
 
 
     double last = glfwGetTime();
@@ -317,12 +386,17 @@ int main() try
 
         // Translations and projection for first launchpad
         Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
-        Mat44f projCameraWorld2 = projection * world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+        Mat44f projCameraWorld_LP1 = projection * world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
 
         Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
-        Mat44f projCameraWorld3 = projection * world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix3 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+        Mat44f projCameraWorld_LP2 = projection * world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+
+        // Space vehicle translations
+        Mat44f model2worldVehicle = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+        Mat44f projCameraWorld_V = projection * world2camera * model2worldVehicle;
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
 
 
 		// Draw scene
@@ -356,17 +430,17 @@ int main() try
 
 
 
-        // Bind landing pad
+        // Bind landing pad VAO
         glBindVertexArray( landingPadVao );
 
         // Draw first landing pad
         glUniformMatrix4fv(
             uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld2.v
+            1, GL_TRUE, projCameraWorld_LP1.v
         );
         glUniformMatrix3fv(
             uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix2.v
+            1, GL_TRUE, normalMatrix_LP1.v
         );
 
         glUniform1i(uUseTextureLocation, false);
@@ -376,15 +450,31 @@ int main() try
         // Draw second landing pad
         glUniformMatrix4fv(
             uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld3.v
+            1, GL_TRUE, projCameraWorld_LP2.v
         );
         glUniformMatrix3fv(
             uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix3.v
+            1, GL_TRUE, normalMatrix_LP2.v
         );
         glUniform1i(uUseTextureLocation, false);
         glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
 
+
+        // Bind Vehicle VAO
+        glBindVertexArray( vehicleVao );
+
+        // Draw first landing pad
+        glUniformMatrix4fv(
+            uProjCameraWorldLocation,
+            1, GL_TRUE, projCameraWorld_V.v
+        );
+        glUniformMatrix3fv(
+            uNormalMatrixLocation,
+            1, GL_TRUE, normalMatrix_V.v
+        );
+
+        glUniform1i(uUseTextureLocation, false);
+        glDrawArrays( GL_TRIANGLES, 0, vehicleVertexCount );
 
 
 

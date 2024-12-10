@@ -178,6 +178,29 @@ Mat44f make_perspective_projection( float aFovInRadians, float aAspect, float aN
 	};
 }
 
+inline
+Mat44f make_scaling( float scale_x, float scale_y, float scale_z ) {
+    return {
+        scale_x, 0.f, 0.f, 0.f,
+        0.f, scale_y, 0.f, 0.f,
+        0.f, 0.f, scale_z, 0.f,
+        0.f, 0.f, 0.f, 1.f
+    };
+}
+
+inline
+Mat44f make_shearing(float sh_xy = 0.f, float sh_xz = 0.f,
+                     float sh_yx = 0.f, float sh_yz = 0.f,
+                     float sh_zx = 0.f, float sh_zy = 0.f) {
+    return {
+        1.f,    sh_xy, sh_xz, 0.f,
+        sh_yx,  1.f,   sh_yz, 0.f,
+        sh_zx,  sh_zy, 1.f,   0.f,
+        0.f,    0.f,   0.f,   1.f
+    };
+}
+
+
 // https://learnopengl.com/Getting-started/Camera
 inline
 Mat44f look_at( Vec3f pos, Vec3f target, Vec3f up ) {
