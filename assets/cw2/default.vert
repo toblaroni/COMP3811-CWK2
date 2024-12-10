@@ -6,22 +6,23 @@ layout( location = 1 ) in vec3 iNormal;
 layout( location = 2 ) in vec3 iAmbient;
 layout( location = 3 ) in vec3 iDiffuse;
 layout( location = 4 ) in vec3 iSpecular;
-layout( location = 5 ) in vec3 iShininess;
-layout( location = 6 ) in float iEmissive;
+layout( location = 5 ) in float iShininess;
+layout( location = 6 ) in vec3 iEmissive;
 layout( location = 7 ) in float iIllum;
-
-out vec3 v2fAmbient;
-out vec3 v2fDiffuse;
-out vec3 v2fSpecular;
-out vec3 v2fShininess;
-out float v2fEmissive;
-out float v2fIllum;
 
 // layout( location = 0 ) uniform mat4 uProjCameraWorld;
 uniform mat4 uProjCameraWorld;
 uniform mat3 uNormalMatrix;
 
 out vec3 v2fNormal;
+out vec3 v2fAmbient;
+out vec3 v2fDiffuse;
+out vec3 v2fSpecular;
+out float v2fShininess;
+out vec3 v2fEmissive;
+out float v2fIllum;
+
+out vec3 v2fViewPos;    // Pass position in 'view' space
 
 void main()
 {
@@ -35,6 +36,10 @@ void main()
     v2fIllum = iIllum;
 
     v2fNormal = normalize(uNormalMatrix * iNormal);
+
+    // Transform the fragment position to view space
+    vec4 viewSpacePosition = uProjCameraWorld * vec4(iPosition, 1.0);
+    v2fViewPos = viewSpacePosition.xyz;
 
     gl_Position = uProjCameraWorld * vec4( iPosition, 1.0 );
 }

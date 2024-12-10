@@ -7,14 +7,13 @@
 
 #include "../vmlib/vec3.hpp"
 
-// 
 struct Material {
 	Vec3f ambient;		// Ka
 	Vec3f diffuse;		// Kd
 	Vec3f specular;		// Ks
 	float shininess;	// Ns
 	Vec3f emissive;		// Ke
-	float illum;			// Illumination model
+	float illum;		// Illumination model
 };
 
 struct SimpleMeshData

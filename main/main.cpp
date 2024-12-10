@@ -204,14 +204,15 @@ int main() try
 
     // FIX FOR 4.1
 	GLint uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
-	GLint uNormalMatrixLocation = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-	GLint uLightDirLocation = glGetUniformLocation(prog.programId(), "uLightDir");
-	GLint uLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uLightDiffuse");
-	GLint uSceneAmbientLocation = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+	GLint uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uLightPosLocation        = glGetUniformLocation(prog.programId(), "uLightPos");
+	GLint uLightDiffuseLocation    = glGetUniformLocation(prog.programId(), "uLightDiffuse");
+	GLint uLightSpecular           = glGetUniformLocation(prog.programId(), "uLightSpecular");
+	GLint uSceneAmbientLocation    = glGetUniformLocation(prog.programId(), "uSceneAmbient");
 
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
-        uLightDirLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
+        uLightPosLocation == -1 || uLightDiffuseLocation == -1 || uSceneAmbientLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
 
@@ -304,16 +305,16 @@ int main() try
         );
 
         Mat44f projCameraWorld = projection * world2camera * model2world;
-        Mat33f normalMatrix = mat44_to_mat33(model2world);
+        Mat33f normalMatrix = mat44_to_mat33( transpose(invert(model2world)) );
 
         // Translations and projection for first launchpad
         Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
         Mat44f projCameraWorld2 = projection * world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix2 = mat44_to_mat33(model2worldLaunchpad);
+        Mat33f normalMatrix2 = mat44_to_mat33( transpose(invert(model2worldLaunchpad)) );
 
         Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
         Mat44f projCameraWorld3 = projection * world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix3 = mat44_to_mat33(model2worldLaunchpad2);
+        Mat33f normalMatrix3 = mat44_to_mat33( transpose(invert(model2worldLaunchpad2)) );
 
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
@@ -332,10 +333,10 @@ int main() try
             1, GL_TRUE, normalMatrix.v
         );
 
-        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-        glUniform3fv( uLightDirLocation, 1, &lightDir.x );
 
+        glUniform3f( uLightPosLocation, 0.f, 1.f, 0.f );
         glUniform3f( uLightDiffuseLocation, 0.9f, 0.9f, 0.6f );
+        glUniform3f( uLightSpecular, 0.5f, 0.5f, 0.5f );
         glUniform3f( uSceneAmbientLocation, 0.05f, 0.05f, 0.05f );
 
         glBindVertexArray( langersoVao );
@@ -348,6 +349,7 @@ int main() try
             uProjCameraWorldLocation,
             1, GL_TRUE, projCameraWorld2.v
         );
+
 
         glUniformMatrix3fv(
             uNormalMatrixLocation,
@@ -420,12 +422,6 @@ namespace
             state->camControl.cameraPos.y -= velocity;
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
-
-        std::printf(
-            "%f, %f\n",
-            state->camControl.cameraPos.x,
-            state->camControl.cameraPos.z
-        );
     }
 }
 
