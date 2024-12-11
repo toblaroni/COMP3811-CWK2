@@ -20,6 +20,16 @@ SimpleMeshData make_vehicle() {
         1.0f               
     };
 
+    Material lightbulbMaterial = {
+        {0.2f, 0.2f, 0.2f},
+        {0.8f, 0.8f, 0.0f},
+        {1.0f, 1.0f, 1.0f},
+        32.0f,             
+        {1.0f, 1.0f, 0.0f},
+        1.0f               
+    };
+
+
     Material spaceshipLightGrey = {
         {0.2f, 0.2f, 0.2f},
         {0.8f, 0.8f, 0.8f},
@@ -111,7 +121,7 @@ SimpleMeshData make_vehicle() {
     );
 
     auto point = make_cube(
-        spaceshipGrey,
+        lightbulbMaterial,
         make_translation({0.f, 0.7f, 0.f}) * make_scaling(.025f, .025f, .025f)
     );
 

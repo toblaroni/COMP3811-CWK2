@@ -22,6 +22,8 @@
 #include "texture.hpp"
 #include "vehicle.hpp"
 
+#define NUM_LIGHTS 3
+
 namespace
 {
 	constexpr char const* kWindowTitle = "COMP3811 - CW2";
@@ -204,26 +206,40 @@ int main() try
 
 
     // FIX FOR 4.1
-	GLint uProjCameraWorldLocation   = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
-	GLint uNormalMatrixLocation      = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-	GLint uLightDiffuseLocation      = glGetUniformLocation(prog.programId(), "uLightDiffuse");
-	GLint uLightSpecularLocation     = glGetUniformLocation(prog.programId(), "uLightSpecular");
-	GLint uSceneAmbientLocation      = glGetUniformLocation(prog.programId(), "uSceneAmbient");
-	GLint uViewMatrixLocation        = glGetUniformLocation(prog.programId(), "uViewMatrix");
-	GLint uUseTextureLocation        = glGetUniformLocation(prog.programId(), "uUseTexture");
-	GLint uLightPosViewSpaceLocation = glGetUniformLocation(prog.programId(), "uLightPosViewSpace");
-	GLint uLightDirLocation          = glGetUniformLocation(prog.programId(), "uLightDir");
+	GLint uProjCameraWorldLocation     = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
+	GLint uNormalMatrixLocation        = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uViewMatrixLocation          = glGetUniformLocation(prog.programId(), "uViewMatrix");
+	GLint uUseTextureLocation          = glGetUniformLocation(prog.programId(), "uUseTexture");
+	GLint uDirectLightDirLocation      = glGetUniformLocation(prog.programId(), "uDirectLightDir");
+	GLint uDirectLightAmbientLocation  = glGetUniformLocation(prog.programId(), "uDirectLightAmbient");
+	GLint uDirectLightDiffuseLocation  = glGetUniformLocation(prog.programId(), "uDirectLightDiffuse");
 
+    // Generate locations for lights
+    GLuint uLightPosViewSpaceLocations[NUM_LIGHTS] = {};
+    GLuint uLightDiffuseLocations[NUM_LIGHTS]      = {};
+    GLuint uLightSpecularLocations[NUM_LIGHTS]     = {};
+    GLuint uSceneAmbientLocations[NUM_LIGHTS]      = {};
+
+    for (int i = 0; i < NUM_LIGHTS; ++i) {
+        char const *lightPosUniform = ("uLightPosViewSpace[" + std::to_string(i) + "]").c_str();
+        uLightPosViewSpaceLocations[i] = glGetUniformLocation( prog.programId(), lightPosUniform );
+
+        char const *lightDiffuseUniform = ("uLightDiffuse[" + std::to_string(i) + "]").c_str();
+        uLightDiffuseLocations[i] = glGetUniformLocation( prog.programId(), lightDiffuseUniform );
+
+        char const *lightSpecularUniform = ("uLightSpecular[" + std::to_string(i) + "]").c_str();
+        uLightSpecularLocations[i] = glGetUniformLocation( prog.programId(), lightSpecularUniform );
+
+        char const *sceneAmbientUniform = ("uSceneAmbient[" + std::to_string(i) + "]").c_str();
+        uSceneAmbientLocations[i] = glGetUniformLocation( prog.programId(), sceneAmbientUniform );
+    }
 
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || 
         uNormalMatrixLocation == -1    ||
-        uLightDiffuseLocation == -1    ||
-        uSceneAmbientLocation == -1    || 
         uViewMatrixLocation == -1      || 
-        uLightSpecularLocation == -1   || 
-        uLightDirLocation == -1        || 
-        uLightPosViewSpaceLocation == -1) {
+        uDirectLightDirLocation == -1        || 
+        uUseTextureLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
         // Exit here?
 	}
@@ -269,6 +285,39 @@ int main() try
     auto vehicle = make_vehicle();
     GLuint vehicleVao = create_vao( vehicle );
     std::size_t vehicleVertexCount = vehicle.positions.size();
+
+    // Create lights
+    // Probs fine to declare here since we don't use it anywhere else
+    struct Light {
+        Vec3f position;     // Make sure to convert to camera space
+        Vec3f diffuse;
+        Vec3f specular;
+        Vec3f ambient;
+    };
+
+    std::vector<Light> lights = {
+        // Above and slightly in front of the spaceship
+        Light {
+            Vec3f{3.f, 10.f, -3.f},  
+            Vec3f{1.0f, 1.0f, 1.0f},
+            Vec3f{1.0f, 1.0f, 1.0f},
+            Vec3f{0.2f, 0.2f, 0.2f} 
+        },
+        // Above the spaceship and to the left
+        Light {
+            Vec3f{0.f, 10.f, -5.f}, 
+            Vec3f{1.0f, 0.5f, 0.0f},
+            Vec3f{1.0f, 0.5f, 0.0f},
+            Vec3f{0.2f, 0.1f, 0.1f}
+        },
+        // Above the spaceship to the right
+        Light {
+            Vec3f{6.f, 10.f, -7.f},  
+            Vec3f{0.0f, 0.0f, 1.0f},
+            Vec3f{0.0f, 0.0f, 1.0f},
+            Vec3f{0.1f, 0.1f, 0.2f} 
+        }
+    };
 
     double last = glfwGetTime();
 
@@ -350,19 +399,25 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
-        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-        glUniform3fv( uLightDirLocation, 1, &lightDir.x );
+        // Original directional lighting
+        Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
+        glUniform3fv( uDirectLightDirLocation, 1, &directLightDir.x );
 
-        // Point light location in world space
-        Vec4f lightPos = { 0.f, 5.f, 0.f, 1.f };
-        // Transform to camera (view) space 
-        Vec4f lightPosViewSpace = world2camera * lightPos;
+        glUniform3f( uDirectLightDiffuseLocation, 1.f, 1.f, 0.f );
+        glUniform3f( uDirectLightAmbientLocation, 0.2f, 0.2f, 0.2f );
 
-        glUniform3f( uLightPosViewSpaceLocation,  lightPosViewSpace.x, lightPosViewSpace.y, lightPosViewSpace.z );
+        // Point lights
+        for (int i = 0; i < NUM_LIGHTS; ++i) {
+            // Transform position to camera space
+            Vec4f lightPos4f = world2camera * Vec4f { lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.f };
+            Vec3f lightPositionViewSpace = Vec3f { lightPos4f.x, lightPos4f.y, lightPos4f.z };
 
-        glUniform3f( uLightDiffuseLocation, 1.f, 1.f, 0.f );
-        glUniform3f( uLightSpecularLocation, 1.f, 1.f, 1.f );
-        glUniform3f( uSceneAmbientLocation, 0.2f, 0.2f, 0.2f );
+            glUniform3fv(uLightPosViewSpaceLocations[i], 1, &lightPositionViewSpace.x );
+            glUniform3fv(uLightDiffuseLocations[i], 1, &lights[i].diffuse.x);
+            glUniform3fv(uLightSpecularLocations[i], 1, &lights[i].specular.x);
+            glUniform3fv(uSceneAmbientLocations[i], 1, &lights[i].ambient.x);
+        }
+
 
         glUniformMatrix4fv(
             uViewMatrixLocation,
