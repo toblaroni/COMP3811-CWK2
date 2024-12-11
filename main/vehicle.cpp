@@ -20,6 +20,15 @@ SimpleMeshData make_vehicle() {
         1.0f               
     };
 
+    Material spaceshipLightGrey = {
+        {0.4f, 0.4f, 0.4f},
+        {0.4f, 0.4f, 0.4f},
+        {0.3f, 0.3f, 0.3f},
+        50.0f,              
+        {0.0f, 0.0f, 0.0f},
+        1.0f              
+    };
+
     Material lightbulbMaterial = {
         {0.2f, 0.2f, 0.2f},
         {0.8f, 0.8f, 0.0f},
@@ -37,7 +46,7 @@ SimpleMeshData make_vehicle() {
     );
 
     auto middle = make_cylinder(
-        true, 16, spaceshipRed,
+        true, 16, spaceshipLightGrey,
         make_translation({0.f, 0.2f, 0.f}) * 
         make_scaling(.1f, .3f, .1f) * 
         make_rotation_z(0.5f * std::numbers::pi_v<float>)
