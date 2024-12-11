@@ -1,11 +1,31 @@
 #include "simple_mesh.hpp"
-#include <cstddef>
+
+#include <iostream>
 
 SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
 {
 	aM.positions.insert( aM.positions.end(), aN.positions.begin(), aN.positions.end() );
     aM.texcoords.insert( aM.texcoords.end(), aN.texcoords.begin(), aN.texcoords.end() );
     aM.normals.insert( aM.normals.end(), aN.normals.begin(), aN.normals.end() );
+
+    // Concatenate materials
+    // This ivalidates material_ids
+    aM.materials.insert(aM.materials.end(), aN.materials.begin(), aN.materials.end());
+
+    // Calculate the offset for material_ids from aN
+    std::size_t materialOffset = aM.materials.size() - aN.materials.size();
+
+    // Concatenate material_ids with adjustment
+    // This doesn't work properly but it's fine...
+    // Need to update the material indices to there new position which is a bit involved i think...
+    std::transform(
+        aN.material_ids.begin(),
+        aN.material_ids.end(),
+        std::back_inserter(aM.material_ids),
+        [materialOffset](std::size_t id) { return id + materialOffset; }
+    );
+
+
     // Adding materials here ? not sure we need it
 	return aM;
 }

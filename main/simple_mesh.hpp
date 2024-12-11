@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 
 #include <vector>
+#include <algorithm>
 
 #include "../vmlib/vec2.hpp"
 #include "../vmlib/vec3.hpp"
