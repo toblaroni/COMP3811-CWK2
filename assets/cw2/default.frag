@@ -43,7 +43,7 @@ void main()
     vec3 diffuse = (nDotL * uLightDiffuse * v2fDiffuse) * falloff;   // Apply falloff
 
     // Specular contribution
-    float spec_modifier = 50.0;
+    float spec_modifier = 5.0;
 
     vec3 H = normalize(lightDir + viewDir);    // Half vector
     float hDotN = max(0.0, dot(H, normal));

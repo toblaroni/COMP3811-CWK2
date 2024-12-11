@@ -2,7 +2,7 @@
 
 #include <numbers>
 
-SimpleMeshData make_cone( bool aCapped, std::size_t aSubdivs, Vec3f aColor, Mat44f aPreTransform )
+SimpleMeshData make_cone( bool aCapped, std::size_t aSubdivs, Material aMaterial, Mat44f aPreTransform )
 {
     // Calculate normal matrix
     Mat33f const N = mat44_to_mat33(transpose(invert(aPreTransform)));
@@ -50,12 +50,16 @@ SimpleMeshData make_cone( bool aCapped, std::size_t aSubdivs, Vec3f aColor, Mat4
         p = Vec3f{ t.x, t.y, t.z };
     }
 
-    std::vector<Vec3f> col( pos.size(), aColor );
-
     std::vector<Vec2f> texcoords;
-    std::vector<int> material_ids; 
-    std::vector<Material> materials;
+    std::vector<int> material_ids(pos.size(), 0); 
+    std::vector<Material> materials(1, aMaterial);
 
-    return SimpleMeshData{ std::move(pos), texcoords, std::move(normals), material_ids, materials };
+    return SimpleMeshData{ 
+        std::move(pos), 
+        std::move(texcoords),
+        std::move(normals),
+        std::move(material_ids), 
+        std::move(materials) 
+    };
 }
 

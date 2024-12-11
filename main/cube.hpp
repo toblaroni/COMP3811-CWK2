@@ -12,7 +12,13 @@
 #include "../vmlib/mat33.hpp"
 
 SimpleMeshData make_cube(
-	Vec3f aColor = { 1.f, 1.f, 1.f },
+    Material defaultMaterial = { {0.1f, 0.1f, 0.1f},    // Ambience
+                                 {0.8f, 0.8f, 0.8f},    // Diffuse
+                                 {0.5f, 0.5f, 0.5f},    // Specular
+                                 15.0f,                 // Shininess
+                                 {0.0f, 0.0f, 0.0f},    // Emissive
+                                 1.0f },                // Illum
+
 	Mat44f aPreTransform = kIdentity44f
 );
 
