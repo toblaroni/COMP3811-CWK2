@@ -1,3 +1,4 @@
+#include <GL/gl.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -28,7 +29,8 @@ namespace
     constexpr float kMovementPerSecond_ = 3.f; // units per second
     constexpr float kMouseSensitivity_ = 0.05f; // radians per pixel
 
-    float fbwidth, fbheight;
+    int fbwidth = 0;
+    int fbheight = 0;
 
     struct Light {
         Vec3f position;     // Make sure to convert to camera space
@@ -40,7 +42,9 @@ namespace
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
-
+        
+        bool isSplitScreen = false;
+        
         /*
          *  === Camera Controls ===
          *  https://learnopengl.com/Getting-started/Camera
@@ -48,25 +52,25 @@ namespace
          *  The view matrix in this struct is our camera coordinate system.
          */
         struct CamCtrl_ {
-            bool cameraActive;
-            bool topDown;
+            bool cameraActive = false;
+            bool topDown = false;
 
-            bool moveFast;
-            bool moveSlow;
+            bool moveFast = false;
+            bool moveSlow = false;
 
-            bool strafingLeft, strafingRight;
-            bool movingForward, movingBackward;
-            bool movingUp, movingDown;
+            bool strafingLeft = false, strafingRight = false;
+            bool movingForward = false, movingBackward = false;
+            bool movingUp = false, movingDown = false;
 
-            float pitch;    // Looking left / right
-            float yaw;      // Looking up / down
+            float pitch = 0.f;  // Looking left / right
+            float yaw = std::numbers::pi_v<float> / -2.f;      // Looking up / down
 
-            Vec3f cameraPos;
-            Vec3f cameraFront;
-            Vec3f cameraUp;
+            Vec3f cameraPos = { 0.f, 3.f, 3.f };
+            Vec3f cameraFront = { 0.f, 0.f, -1.f };
+            Vec3f cameraUp { 0.f, 1.f, 0.f };
 
             // This contains the coordinate space for the camera
-            Mat44f view;
+            Mat44f view = {};
 
         } camControl;
 
@@ -322,25 +326,10 @@ int main() try
 
     // Initialise state
     state.prog = &prog;
-    state.camControl.cameraActive = false;
-    state.camControl.topDown = false;
-    state.camControl.pitch = 0.f;
-    state.camControl.yaw = std::numbers::pi_v<float> / -2.f;    // Give default of -90 degrees
-    state.deltaTime = 0.1f;
 
-    state.camControl.cameraPos = { 0.f, 3.f, 3.f };
-    state.camControl.movingBackward = false;
-    state.camControl.movingForward = false;
-    state.camControl.strafingLeft = false;
-    state.camControl.strafingRight = false;
-    state.camControl.movingUp = false;
-    state.camControl.movingDown = false;
+    glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
-    state.camControl.cameraFront = Vec3f { 0.f, 0.f, -1.f };
-    state.camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
-    state.camControl.view = {};
-
-
+    printf("WINDOW SIZE: %i, %i\n", fbwidth, fbheight);
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -399,8 +388,8 @@ int main() try
 			int nwidth, nheight;
 			glfwGetFramebufferSize( window, &nwidth, &nheight );
 
-			fbwidth = float(nwidth);
-			fbheight = float(nheight);
+			fbwidth = nwidth;
+			fbheight = nheight;
 
 			if( 0 == nwidth || 0 == nheight )
 			{
@@ -437,9 +426,8 @@ int main() try
         state.renderData.projection = make_perspective_projection(
             60.f * std::numbers::pi_v<float> / 180.f,
             fbwidth / float(fbheight),  // Aspect ratio
-            0.1f, 100.0f        // Near / far 
+            0.1f, 100.0f                // Near / far 
         );
-
 
 
 		// Draw scene
@@ -455,7 +443,7 @@ int main() try
         );
 
         renderScene( state );
-        
+
 		OGL_CHECKPOINT_DEBUG();
 
 		// Display results
@@ -519,11 +507,11 @@ namespace
         const Mat33f &normalMatrix, 
         State_ &state
     ) {
-      glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
-      glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
 
-      glBindVertexArray(vao);
-      glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
     }
 
     // Contains main rendering logic
@@ -533,8 +521,8 @@ namespace
         Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
 
         glUniform3fv( state.renderData.uDirectLightDirLocation, 1, &directLightDir.x );
-        glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.6f, 0.6f, 0.0f );
-        glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.2f, 0.2f, 0.2f );
+        glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.5f, 0.5f, 0.0f );
+        glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.1f, 0.1f, 0.1f );
 
         // Point lights
         for (int i = 0; i < NUM_LIGHTS; ++i) {
@@ -621,6 +609,7 @@ namespace
         drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
 
         glUniform1i(state.renderData.uUseTextureLocation, GL_FALSE);
+
         // Draw first landing pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
 
@@ -669,6 +658,7 @@ namespace
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
                 state->vehicleControl.launch ^= true; 
             }
+
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
                 state->vehicleControl.launch = false;
                 state->vehicleControl.origin = { 3.f, 0.f, -5.f };
@@ -676,6 +666,8 @@ namespace
                 state->vehicleControl.time = 0.f;
                 state->vehicleControl.theta = 0.f;
             }
+
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_V) { state->isSplitScreen = !state->isSplitScreen; }
 
             if (aAction == GLFW_PRESS || aAction == GLFW_RELEASE) 
             {
@@ -703,9 +695,11 @@ namespace
                         break;
                     // Not sure if it's better to use aMod for these?
                     case GLFW_KEY_LEFT_SHIFT:
+                    case GLFW_KEY_RIGHT_SHIFT:
                         state->camControl.moveFast = isPressed;
                         break;
-                    case GLFW_KEY_LEFT_CONTROL:
+                    case GLFW_KEY_LEFT_CONTROL: 
+                    case GLFW_KEY_RIGHT_CONTROL:
                         state->camControl.moveSlow = isPressed;
                         break;
                 }
