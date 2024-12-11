@@ -125,7 +125,6 @@ namespace
         } vehicleControl;
 
     };
-
 	
 	void glfw_callback_error_( int, char const* );
 
@@ -433,17 +432,45 @@ int main() try
 		OGL_CHECKPOINT_DEBUG();
 
 		//TODO: draw frame
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-        glUseProgram( prog.programId() );
+        if (!state.isSplitScreen) {
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth / float(fbheight),  // Aspect ratio
+                0.1f, 100.0f                // Near / far 
+            );
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glUseProgram(prog.programId());
 
-        glUniformMatrix4fv(
-            state.renderData.uViewMatrixLocation,
-            1, GL_TRUE, state.renderData.world2camera.v
-        );
+            glUniformMatrix4fv(state.renderData.uViewMatrixLocation, 1,
+                                GL_TRUE, state.renderData.world2camera.v);
 
-        renderScene( state );
+            renderScene(state);
+        } else {
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth/2.f / float(fbheight),  // Aspect ratio
+                0.1f, 100.0f                // Near / far 
+            );
 
-		OGL_CHECKPOINT_DEBUG();
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glViewport(0, 0, fbwidth/2, fbheight);
+
+            glUniformMatrix4fv(state.renderData.uViewMatrixLocation, 1,
+                                GL_TRUE, state.renderData.world2camera.v);
+
+            renderScene(state);
+
+            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
+
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            renderScene(state);
+        }
+
+        OGL_CHECKPOINT_DEBUG();
 
 		// Display results
 		glfwSwapBuffers( window );
