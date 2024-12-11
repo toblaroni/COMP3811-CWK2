@@ -53,7 +53,7 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
 
     // Intensify specular contribution
     // Make highlights pop and shiny things shine more
-    float spec_modifier = 25.0;
+    float spec_modifier = 20.0;
 
     vec3 H = normalize(lightDir + viewDir);    // Half vector
     float hDotN = max(0.0, dot(H, normal));
