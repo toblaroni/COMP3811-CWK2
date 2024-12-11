@@ -29,16 +29,6 @@ SimpleMeshData make_vehicle() {
         1.0f               
     };
 
-
-    Material spaceshipLightGrey = {
-        {0.2f, 0.2f, 0.2f},
-        {0.8f, 0.8f, 0.8f},
-        {0.1f, 0.1f, 0.1f},
-        5.0f,              
-        {0.0f, 0.0f, 0.0f},
-        1.0f               
-    };
-
     auto top = make_cone(
         true, 16, spaceshipRed,
         make_translation({0.f, 0.5f, 0.f}) *

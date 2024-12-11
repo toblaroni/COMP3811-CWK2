@@ -52,7 +52,7 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
     vec3 diffuse = (nDotL * aLightDiffuse * v2fDiffuse) * falloff;   // Apply falloff
 
     // Intensify specular contribution
-    float spec_modifier = 100.0;
+    float spec_modifier = 5.0;
 
     vec3 H = normalize(lightDir + viewDir);    // Half vector
     float hDotN = max(0.0, dot(H, normal));
@@ -60,9 +60,11 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
 
     // Combine the lighting
     vec3 lighting = ambience + diffuse + specular + v2fEmissive;
+
+    // return specular;     // Debugging
+
     lighting *= v2fIllum;
     return lighting;
-
 }
 
 
@@ -74,7 +76,8 @@ void main()
     float nDotL = max( 0.0, dot( normal, uDirectLightDir ) );
     // Just use the diffuse component of the material since this is what v2fcolor was originally
     vec3 lighting = (uDirectLightAmbient + nDotL * uDirectLightDiffuse) * v2fDiffuse;
-    // vec3 lighting = vec3(0.0, 0.0, 0.0);
+
+    // lighting = vec3(0.0);    // Debugging
 
     // === Point lights ===
     // Calculate view direction
@@ -90,10 +93,9 @@ void main()
         );
     }
 
-
     // Add the texture stuff
     oColor = uUseTexture ? lighting * texture( uTexture, v2fTexCoord ).rgb : lighting;
     oColor = clamp( oColor, 0.0, 1.0 );
 
-    // oColor = lighting;
+    // oColor = lighting;   // Debugging
 }

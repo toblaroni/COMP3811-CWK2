@@ -221,18 +221,41 @@ int main() try
     GLuint uSceneAmbientLocations[NUM_LIGHTS]      = {};
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
-        char const *lightPosUniform = ("uLightPosViewSpace[" + std::to_string(i) + "]").c_str();
-        uLightPosViewSpaceLocations[i] = glGetUniformLocation( prog.programId(), lightPosUniform );
+        // Light Position
+        std::string lightPosUniformStr = "uLightPosViewSpace[" + std::to_string(i) + "]";
+        const char *lightPosUniform = lightPosUniformStr.c_str();
+        uLightPosViewSpaceLocations[i] = glGetUniformLocation(prog.programId(), lightPosUniform);
 
-        char const *lightDiffuseUniform = ("uLightDiffuse[" + std::to_string(i) + "]").c_str();
-        uLightDiffuseLocations[i] = glGetUniformLocation( prog.programId(), lightDiffuseUniform );
+        // Light Diffuse
+        std::string lightDiffuseUniformStr = "uLightDiffuse[" + std::to_string(i) + "]";
+        const char *lightDiffuseUniform = lightDiffuseUniformStr.c_str();
+        uLightDiffuseLocations[i] = glGetUniformLocation(prog.programId(), lightDiffuseUniform);
 
-        char const *lightSpecularUniform = ("uLightSpecular[" + std::to_string(i) + "]").c_str();
-        uLightSpecularLocations[i] = glGetUniformLocation( prog.programId(), lightSpecularUniform );
+        // Light Specular
+        std::string lightSpecularUniformStr = "uLightSpecular[" + std::to_string(i) + "]";
+        const char *lightSpecularUniform = lightSpecularUniformStr.c_str();
+        uLightSpecularLocations[i] = glGetUniformLocation(prog.programId(), lightSpecularUniform);
 
-        char const *sceneAmbientUniform = ("uSceneAmbient[" + std::to_string(i) + "]").c_str();
-        uSceneAmbientLocations[i] = glGetUniformLocation( prog.programId(), sceneAmbientUniform );
+        // Scene Ambient
+        std::string sceneAmbientUniformStr = "uSceneAmbient[" + std::to_string(i) + "]";
+        const char *sceneAmbientUniform = sceneAmbientUniformStr.c_str();
+        uSceneAmbientLocations[i] = glGetUniformLocation(prog.programId(), sceneAmbientUniform);
+
+            // Check Uniform Locations
+        if (uLightPosViewSpaceLocations[i] == static_cast<GLuint>(-1)) {
+            fprintf(stderr, "Error: Uniform location for %s not found!\n", lightPosUniform);
+        }
+        if (uLightDiffuseLocations[i] == static_cast<GLuint>(-1)) {
+            fprintf(stderr, "Error: Uniform location for %s not found!\n", lightDiffuseUniform);
+        }
+        if (uLightSpecularLocations[i] == static_cast<GLuint>(-1)) {
+            fprintf(stderr, "Error: Uniform location for %s not found!\n", lightSpecularUniform);
+        }
+        if (uSceneAmbientLocations[i] == static_cast<GLuint>(-1)) {
+            fprintf(stderr, "Error: Uniform location for %s not found!\n", sceneAmbientUniform);
+        }
     }
+
 
 	// Ensure the locations are valid
 	if (uProjCameraWorldLocation == -1 || 
@@ -241,7 +264,6 @@ int main() try
         uDirectLightDirLocation == -1        || 
         uUseTextureLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
-        // Exit here?
 	}
 
 
@@ -296,27 +318,24 @@ int main() try
     };
 
     std::vector<Light> lights = {
-        // Above and slightly in front of the spaceship
-        Light {
-            Vec3f{3.f, 10.f, -3.f},  
-            Vec3f{1.0f, 1.0f, 1.0f},
-            Vec3f{1.0f, 1.0f, 1.0f},
-            Vec3f{0.2f, 0.2f, 0.2f} 
-        },
-        // Above the spaceship and to the left
-        Light {
-            Vec3f{0.f, 10.f, -5.f}, 
-            Vec3f{1.0f, 0.5f, 0.0f},
-            Vec3f{1.0f, 0.5f, 0.0f},
-            Vec3f{0.2f, 0.1f, 0.1f}
-        },
-        // Above the spaceship to the right
-        Light {
-            Vec3f{6.f, 10.f, -7.f},  
-            Vec3f{0.0f, 0.0f, 1.0f},
-            Vec3f{0.0f, 0.0f, 1.0f},
-            Vec3f{0.1f, 0.1f, 0.2f} 
-        }
+            Light {
+        Vec3f{2.9f, 0.27f, -4.75f},  
+        Vec3f{1.0f, 1.0f, 1.0f},
+        Vec3f{1.5f, 1.5f, 1.5f},
+        Vec3f{0.3f, 0.3f, 0.3f} 
+    },
+    Light {
+        Vec3f{2.7f, 0.27f, -5.f},
+        Vec3f{0.0f, 1.0f, 0.0f}, 
+        Vec3f{1.5f, 1.0f, 0.5f}, 
+        Vec3f{0.2f, 0.2f, 0.2f}  
+    },
+    Light {
+        Vec3f{2.99f, 0.27f, -5.26f},  
+        Vec3f{0.0f, 0.0f, 1.0f}, 
+        Vec3f{1.5f, 0.5f, 1.5f}, 
+        Vec3f{0.2f, 0.2f, 0.3f}  
+    }
     };
 
     double last = glfwGetTime();
@@ -403,7 +422,7 @@ int main() try
         Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
         glUniform3fv( uDirectLightDirLocation, 1, &directLightDir.x );
 
-        glUniform3f( uDirectLightDiffuseLocation, 1.f, 1.f, 0.f );
+        glUniform3f( uDirectLightDiffuseLocation, 1.0f, 1.0f, 0.1f );
         glUniform3f( uDirectLightAmbientLocation, 0.2f, 0.2f, 0.2f );
 
         // Point lights
@@ -539,7 +558,7 @@ namespace
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
 
-        // std::printf("%f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.z);
+        std::printf("%f, %f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.y, state->camControl.cameraPos.z);
     }
 }
 
