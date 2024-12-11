@@ -1,9 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <numbers>
 #include <typeinfo>
-#include <stdexcept>
 
 #include <cstdio>
 #include <cstdlib>
@@ -17,7 +15,6 @@
 #include "../vmlib/mat44.hpp"
 #include "../vmlib/mat33.hpp"
 
-#include "defaults.hpp"
 #include "loadobj.hpp"
 #include "texture.hpp"
 #include "vehicle.hpp"
@@ -432,6 +429,7 @@ int main() try
             fbwidth / float(fbheight),  // Aspect ratio
             0.1f, 100.0f        // Near / far 
         );
+
 
 
 		// Draw scene

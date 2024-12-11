@@ -52,7 +52,8 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
     vec3 diffuse = (nDotL * aLightDiffuse * v2fDiffuse) * falloff;   // Apply falloff
 
     // Intensify specular contribution
-    float spec_modifier = 5.0;
+    // Make highlights pop and shiny things shine more
+    float spec_modifier = 25.0;
 
     vec3 H = normalize(lightDir + viewDir);    // Half vector
     float hDotN = max(0.0, dot(H, normal));
@@ -97,5 +98,4 @@ void main()
     oColor = uUseTexture ? lighting * texture( uTexture, v2fTexCoord ).rgb : lighting;
     oColor = clamp( oColor, 0.0, 1.0 );
 
-    // oColor = lighting;   // Debugging
 }
