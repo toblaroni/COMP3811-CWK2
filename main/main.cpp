@@ -51,6 +51,8 @@ namespace
             bool cameraActive;
             bool topDown;
 
+            int8_t camView = 0;
+
             bool moveFast;
             bool moveSlow;
 
@@ -421,6 +423,17 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
+        if (state.camControl.camView == 1) {
+            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+        else if (state.camControl.camView == 2) {
+            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+
         // Update camera position
         update_camera_pos( &state );
 
@@ -664,6 +677,20 @@ namespace
                     state->camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
                 }
                 state->camControl.topDown = !state->camControl.topDown;
+            }
+
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C) {
+
+                if (state->camControl.camView == 0) {
+                    state->camControl.camView = 1;
+                }
+                else if (state->camControl.camView == 1) {
+                    state->camControl.camView = 2;
+                }
+                else {
+                    state->camControl.camView = 0;
+                }
+
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
