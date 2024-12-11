@@ -15,7 +15,6 @@ layout( location = 8 ) in float iIllum;
 uniform mat4 uProjCameraWorld;
 uniform mat4 uViewMatrix;   // This is camera space
 uniform mat3 uNormalMatrix;
-uniform vec3 uLightPos;
 
 out vec2 v2fTexCoord;
 
@@ -49,9 +48,6 @@ void main()
     // Transform the fragment position to view space
     vec4 viewSpacePosition = uViewMatrix * vec4(iPosition, 1.0);
     v2fViewPos = viewSpacePosition.xyz;
-
-    v2fLightPosViewSpace = (uViewMatrix * vec4(uLightPos, 1.0)).xyz; 
-    // v2fLightPosViewSpace = vec3(0.0, 0.0, -10.0);
 
     gl_Position = uProjCameraWorld * vec4( iPosition, 1.0 );
 }

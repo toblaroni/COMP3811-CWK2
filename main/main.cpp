@@ -204,21 +204,26 @@ int main() try
 
 
     // FIX FOR 4.1
-	GLint uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
-	GLint uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-	GLint uLightPosLocation        = glGetUniformLocation(prog.programId(), "uLightPos");
-	GLint uLightDiffuseLocation    = glGetUniformLocation(prog.programId(), "uLightDiffuse");
-	GLint uLightSpecularLocation   = glGetUniformLocation(prog.programId(), "uLightSpecular");
-	GLint uSceneAmbientLocation    = glGetUniformLocation(prog.programId(), "uSceneAmbient");
-	GLint uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
-	GLint uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
+	GLint uProjCameraWorldLocation   = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
+	GLint uNormalMatrixLocation      = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	GLint uLightDiffuseLocation      = glGetUniformLocation(prog.programId(), "uLightDiffuse");
+	GLint uLightSpecularLocation     = glGetUniformLocation(prog.programId(), "uLightSpecular");
+	GLint uSceneAmbientLocation      = glGetUniformLocation(prog.programId(), "uSceneAmbient");
+	GLint uViewMatrixLocation        = glGetUniformLocation(prog.programId(), "uViewMatrix");
+	GLint uUseTextureLocation        = glGetUniformLocation(prog.programId(), "uUseTexture");
+	GLint uLightPosViewSpaceLocation = glGetUniformLocation(prog.programId(), "uLightPosViewSpace");
+	GLint uLightDirLocation          = glGetUniformLocation(prog.programId(), "uLightDir");
 
 
 	// Ensure the locations are valid
-	if (uProjCameraWorldLocation == -1 || uNormalMatrixLocation == -1 ||
-        uLightPosLocation == -1 || uLightDiffuseLocation == -1 ||
-        uSceneAmbientLocation == -1 || uViewMatrixLocation == -1 || 
-        uLightSpecularLocation == -1) {
+	if (uProjCameraWorldLocation == -1 || 
+        uNormalMatrixLocation == -1    ||
+        uLightDiffuseLocation == -1    ||
+        uSceneAmbientLocation == -1    || 
+        uViewMatrixLocation == -1      || 
+        uLightSpecularLocation == -1   || 
+        uLightDirLocation == -1        || 
+        uLightPosViewSpaceLocation == -1) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
         // Exit here?
 	}
@@ -345,7 +350,16 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
-        glUniform3f( uLightPosLocation, 0.f, 5.f, 0.f );       // This is in world space
+        Vec3f lightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
+        glUniform3fv( uLightDirLocation, 1, &lightDir.x );
+
+        // Point light location in world space
+        Vec4f lightPos = { 0.f, 5.f, 0.f, 1.f };
+        // Transform to camera (view) space 
+        Vec4f lightPosViewSpace = world2camera * lightPos;
+
+        glUniform3f( uLightPosViewSpaceLocation,  lightPosViewSpace.x, lightPosViewSpace.y, lightPosViewSpace.z );
+
         glUniform3f( uLightDiffuseLocation, 1.f, 1.f, 0.f );
         glUniform3f( uLightSpecularLocation, 1.f, 1.f, 1.f );
         glUniform3f( uSceneAmbientLocation, 0.2f, 0.2f, 0.2f );
