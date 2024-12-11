@@ -32,6 +32,13 @@ namespace
     constexpr float kMouseSensitivity_ = 0.05f; // radians per pixel
 
     float fbwidth, fbheight;
+
+    struct Light {
+        Vec3f position;     // Make sure to convert to camera space
+        Vec3f diffuse;
+        Vec3f specular;
+        Vec3f ambient;
+    };
  
     // This will contain the state of our program
     struct State_ {
@@ -63,10 +70,52 @@ namespace
 
             // This contains the coordinate space for the camera
             Mat44f view;
+
         } camControl;
 
         double deltaTime;    // This allows smooth camera movement
+
+
+        // This will hold all data required for rendering 
+        struct RenderData_ {
+            GLuint langersoVertexCount;
+            GLuint landingPadVertexCount;
+            GLuint vehicleVertexCount;
+
+            // Uniform locations
+            GLuint uDirectLightDirLocation;
+            GLuint uDirectLightDiffuseLocation;
+            GLuint uDirectLightAmbientLocation;
+
+            GLuint uLightPosViewSpaceLocations[NUM_LIGHTS] = {};
+            GLuint uLightDiffuseLocations[NUM_LIGHTS] = {};
+            GLuint uLightSpecularLocations[NUM_LIGHTS] = {};
+            GLuint uSceneAmbientLocations[NUM_LIGHTS] = {};
+
+            GLuint uProjCameraWorldLocation;
+            GLuint uUseTextureLocation;
+            GLuint uNormalMatrixLocation;
+            GLuint uViewMatrixLocation;
+
+            // Matrices
+            Mat44f world2camera;
+            Mat44f projection;
+
+            // Point Lights
+            std::vector<Light> lights = {};
+
+            // VAO's
+            GLuint langersoVao;
+            GLuint landingPadVao;
+            GLuint vehicleVao;
+
+            // Texture ID
+            GLuint textureObjectId;
+
+        } renderData;
+
     };
+
 	
 	void glfw_callback_error_( int, char const* );
 
@@ -75,6 +124,7 @@ namespace
     void glfw_callback_mouse_( GLFWwindow* aWindow, int aButton, int aAction, int aMods );
 
     void update_camera_pos( State_* );
+    void renderScene( State_& );
 
 	struct GLFWCleanupHelper
 	{
@@ -206,63 +256,59 @@ int main() try
 
 
     // FIX FOR 4.1
-	GLint uProjCameraWorldLocation     = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
-	GLint uNormalMatrixLocation        = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-	GLint uViewMatrixLocation          = glGetUniformLocation(prog.programId(), "uViewMatrix");
-	GLint uUseTextureLocation          = glGetUniformLocation(prog.programId(), "uUseTexture");
-	GLint uDirectLightDirLocation      = glGetUniformLocation(prog.programId(), "uDirectLightDir");
-	GLint uDirectLightAmbientLocation  = glGetUniformLocation(prog.programId(), "uDirectLightAmbient");
-	GLint uDirectLightDiffuseLocation  = glGetUniformLocation(prog.programId(), "uDirectLightDiffuse");
+    state.renderData.uDirectLightDirLocation     = glGetUniformLocation(prog.programId(), "uDirectLightDir");
+	state.renderData.uDirectLightAmbientLocation = glGetUniformLocation(prog.programId(), "uDirectLightAmbient");
+	state.renderData.uDirectLightDiffuseLocation = glGetUniformLocation(prog.programId(), "uDirectLightDiffuse");
+
+	state.renderData.uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
+	state.renderData.uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
+	state.renderData.uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
+	state.renderData.uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
 
     // Generate locations for lights
-    GLuint uLightPosViewSpaceLocations[NUM_LIGHTS] = {};
-    GLuint uLightDiffuseLocations[NUM_LIGHTS]      = {};
-    GLuint uLightSpecularLocations[NUM_LIGHTS]     = {};
-    GLuint uSceneAmbientLocations[NUM_LIGHTS]      = {};
-
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         // Light Position
         std::string lightPosUniformStr = "uLightPosViewSpace[" + std::to_string(i) + "]";
         const char *lightPosUniform = lightPosUniformStr.c_str();
-        uLightPosViewSpaceLocations[i] = glGetUniformLocation(prog.programId(), lightPosUniform);
+        state.renderData.uLightPosViewSpaceLocations[i] = glGetUniformLocation(prog.programId(), lightPosUniform);
 
         // Light Diffuse
         std::string lightDiffuseUniformStr = "uLightDiffuse[" + std::to_string(i) + "]";
         const char *lightDiffuseUniform = lightDiffuseUniformStr.c_str();
-        uLightDiffuseLocations[i] = glGetUniformLocation(prog.programId(), lightDiffuseUniform);
+        state.renderData.uLightDiffuseLocations[i] = glGetUniformLocation(prog.programId(), lightDiffuseUniform);
 
         // Light Specular
         std::string lightSpecularUniformStr = "uLightSpecular[" + std::to_string(i) + "]";
         const char *lightSpecularUniform = lightSpecularUniformStr.c_str();
-        uLightSpecularLocations[i] = glGetUniformLocation(prog.programId(), lightSpecularUniform);
+        state.renderData.uLightSpecularLocations[i] = glGetUniformLocation(prog.programId(), lightSpecularUniform);
 
         // Scene Ambient
         std::string sceneAmbientUniformStr = "uSceneAmbient[" + std::to_string(i) + "]";
         const char *sceneAmbientUniform = sceneAmbientUniformStr.c_str();
-        uSceneAmbientLocations[i] = glGetUniformLocation(prog.programId(), sceneAmbientUniform);
+        state.renderData.uSceneAmbientLocations[i] = glGetUniformLocation(prog.programId(), sceneAmbientUniform);
 
-            // Check Uniform Locations
-        if (uLightPosViewSpaceLocations[i] == static_cast<GLuint>(-1)) {
+        // Check Uniform Locations
+        if (state.renderData.uLightPosViewSpaceLocations[i] == static_cast<GLuint>(-1)) {
             fprintf(stderr, "Error: Uniform location for %s not found!\n", lightPosUniform);
         }
-        if (uLightDiffuseLocations[i] == static_cast<GLuint>(-1)) {
+        if (state.renderData.uLightDiffuseLocations[i] == static_cast<GLuint>(-1)) {
             fprintf(stderr, "Error: Uniform location for %s not found!\n", lightDiffuseUniform);
         }
-        if (uLightSpecularLocations[i] == static_cast<GLuint>(-1)) {
+        if (state.renderData.uLightSpecularLocations[i] == static_cast<GLuint>(-1)) {
             fprintf(stderr, "Error: Uniform location for %s not found!\n", lightSpecularUniform);
         }
-        if (uSceneAmbientLocations[i] == static_cast<GLuint>(-1)) {
+        if (state.renderData.uSceneAmbientLocations[i] == static_cast<GLuint>(-1)) {
             fprintf(stderr, "Error: Uniform location for %s not found!\n", sceneAmbientUniform);
         }
     }
 
 
 	// Ensure the locations are valid
-	if (uProjCameraWorldLocation == -1 || 
-        uNormalMatrixLocation == -1    ||
-        uViewMatrixLocation == -1      || 
-        uDirectLightDirLocation == -1        || 
-        uUseTextureLocation == -1) {
+	if (state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) || 
+        state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
+        state.renderData.uViewMatrixLocation == static_cast<GLuint>(-1)      || 
+        state.renderData.uDirectLightDirLocation == static_cast<GLuint>(-1)  || 
+        state.renderData.uUseTextureLocation == static_cast<GLuint>(-1)) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
 
@@ -287,55 +333,50 @@ int main() try
     state.camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
     state.camControl.view = {};
 
+
+
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
 
     // Load the terrain and add to VAO
     auto langersoMesh = load_wavefront_obj("assets/cw2/langerso.obj");
-    GLuint langersoVao = create_vao(langersoMesh);
-    std::size_t langersoVertexCount = langersoMesh.positions.size();
+    state.renderData.langersoVao = create_vao(langersoMesh);
+    state.renderData.langersoVertexCount = langersoMesh.positions.size();
 
     // Load the texture
-    auto textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
+    state.renderData.textureObjectId = load_texture_2d("assets/cw2/L3211E-4k.jpg");
 
     // Load the landing pad mesh and create VAO
     auto landingPadMesh = load_wavefront_obj("assets/cw2/landingpad.obj");
-    GLuint landingPadVao = create_vao( landingPadMesh );
-    std::size_t landingPadVertexCount = landingPadMesh.positions.size();
+    state.renderData.landingPadVao = create_vao( landingPadMesh );
+    state.renderData.landingPadVertexCount = landingPadMesh.positions.size();
 
     // Create Vehicle
     auto vehicle = make_vehicle();
-    GLuint vehicleVao = create_vao( vehicle );
-    std::size_t vehicleVertexCount = vehicle.positions.size();
+    state.renderData.vehicleVao = create_vao( vehicle );
+    state.renderData.vehicleVertexCount = vehicle.positions.size();
+
 
     // Create lights
-    // Probs fine to declare here since we don't use it anywhere else
-    struct Light {
-        Vec3f position;     // Make sure to convert to camera space
-        Vec3f diffuse;
-        Vec3f specular;
-        Vec3f ambient;
-    };
-
-    std::vector<Light> lights = {
-            Light {
-        Vec3f{2.9f, 0.27f, -4.75f},  
-        Vec3f{1.0f, 1.0f, 1.0f},
-        Vec3f{1.5f, 1.5f, 1.5f},
-        Vec3f{0.3f, 0.3f, 0.3f} 
-    },
-    Light {
-        Vec3f{2.7f, 0.27f, -5.f},
-        Vec3f{0.0f, 1.0f, 0.0f}, 
-        Vec3f{1.5f, 1.0f, 0.5f}, 
-        Vec3f{0.2f, 0.2f, 0.2f}  
-    },
-    Light {
-        Vec3f{2.99f, 0.27f, -5.26f},  
-        Vec3f{0.0f, 0.0f, 1.0f}, 
-        Vec3f{1.5f, 0.5f, 1.5f}, 
-        Vec3f{0.2f, 0.2f, 0.3f}  
-    }
+    state.renderData.lights = {
+        Light {
+            Vec3f{2.9f, 0.27f, -4.75f},  
+            Vec3f{1.0f, 1.0f, 1.0f},
+            Vec3f{1.5f, 1.5f, 1.5f},
+            Vec3f{0.3f, 0.3f, 0.3f} 
+        },
+        Light {
+            Vec3f{2.7f, 0.27f, -5.f},
+            Vec3f{0.0f, 1.0f, 0.0f}, 
+            Vec3f{1.5f, 1.0f, 0.5f}, 
+            Vec3f{0.2f, 0.2f, 0.2f}  
+        },
+        Light {
+            Vec3f{2.99f, 0.27f, -5.26f},  
+            Vec3f{0.0f, 0.0f, 1.0f}, 
+            Vec3f{1.5f, 0.5f, 1.5f}, 
+            Vec3f{0.2f, 0.2f, 0.3f}  
+        }
     };
 
     double last = glfwGetTime();
@@ -377,38 +418,20 @@ int main() try
         update_camera_pos( &state );
 
 		//TODO: update state
-        Mat44f model2world = kIdentity44f;
 
         state.camControl.view = look_at(
             state.camControl.cameraPos,
-            state.camControl.cameraPos + state.camControl.cameraFront,
+            state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
             state.camControl.cameraUp
         );
 
-        Mat44f world2camera = state.camControl.view;
+        state.renderData.world2camera = state.camControl.view;
 
-        Mat44f projection = make_perspective_projection(
+        state.renderData.projection = make_perspective_projection(
             60.f * std::numbers::pi_v<float> / 180.f,
             fbwidth / float(fbheight),  // Aspect ratio
             0.1f, 100.0f        // Near / far 
         );
-
-        Mat44f projCameraWorld = projection * world2camera * model2world;
-        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
-
-        // Translations and projection for first launchpad
-        Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
-        Mat44f projCameraWorld_LP1 = projection * world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
-
-        Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
-        Mat44f projCameraWorld_LP2 = projection * world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
-
-        // Space vehicle translations
-        Mat44f model2worldVehicle = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
-        Mat44f projCameraWorld_V = projection * world2camera * model2worldVehicle;
-        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
 
 
 		// Draw scene
@@ -418,94 +441,13 @@ int main() try
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
         glUseProgram( prog.programId() );
 
-        // Original directional lighting
-        Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
-        glUniform3fv( uDirectLightDirLocation, 1, &directLightDir.x );
-
-        glUniform3f( uDirectLightDiffuseLocation, 1.0f, 1.0f, 0.1f );
-        glUniform3f( uDirectLightAmbientLocation, 0.2f, 0.2f, 0.2f );
-
-        // Point lights
-        for (int i = 0; i < NUM_LIGHTS; ++i) {
-            // Transform position to camera space
-            Vec4f lightPos4f = world2camera * Vec4f { lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.f };
-            Vec3f lightPositionViewSpace = Vec3f { lightPos4f.x, lightPos4f.y, lightPos4f.z };
-
-            glUniform3fv(uLightPosViewSpaceLocations[i], 1, &lightPositionViewSpace.x );
-            glUniform3fv(uLightDiffuseLocations[i], 1, &lights[i].diffuse.x);
-            glUniform3fv(uLightSpecularLocations[i], 1, &lights[i].specular.x);
-            glUniform3fv(uSceneAmbientLocations[i], 1, &lights[i].ambient.x);
-        }
-
-
         glUniformMatrix4fv(
-            uViewMatrixLocation,
-            1, GL_TRUE, world2camera.v
+            state.renderData.uViewMatrixLocation,
+            1, GL_TRUE, state.renderData.world2camera.v
         );
 
-        glUniformMatrix4fv(
-            uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld.v
-        );
-
-        glUniformMatrix3fv(
-            uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix.v
-        );
-
-        glUniform1i(uUseTextureLocation, GL_TRUE);
-
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, textureObjectId );
-
-        glBindVertexArray( langersoVao );
-
-        glDrawArrays( GL_TRIANGLES, 0, langersoVertexCount );
-
-        glUniform1i(uUseTextureLocation, GL_FALSE);
-
-        // Bind landing pad VAO
-        glBindVertexArray( landingPadVao );
-
-        // Draw first landing pad
-        glUniformMatrix4fv(
-            uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld_LP1.v
-        );
-        glUniformMatrix3fv(
-            uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix_LP1.v
-        );
-
-        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
-
-
-        // Draw second landing pad
-        glUniformMatrix4fv(
-            uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld_LP2.v
-        );
-        glUniformMatrix3fv(
-            uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix_LP2.v
-        );
-        glDrawArrays( GL_TRIANGLES, 0, landingPadVertexCount );
-
-        // Bind Vehicle VAO
-        glBindVertexArray( vehicleVao );
-
-        // Draw first landing pad
-        glUniformMatrix4fv(
-            uProjCameraWorldLocation,
-            1, GL_TRUE, projCameraWorld_V.v
-        );
-        glUniformMatrix3fv(
-            uNormalMatrixLocation,
-            1, GL_TRUE, normalMatrix_V.v
-        );
-
-        glDrawArrays( GL_TRIANGLES, 0, vehicleVertexCount );
-
+        renderScene( state );
+        
 		OGL_CHECKPOINT_DEBUG();
 
 		// Display results
@@ -531,6 +473,7 @@ catch( std::exception const& eErr )
 // Helper functions
 namespace
 {
+
     void update_camera_pos( State_* state ) {
         float speedModifier = state->camControl.moveFast ? 2.f : state->camControl.moveSlow ? 0.5f : 1.f;
         float velocity = kMovementPerSecond_ * state->deltaTime * speedModifier;
@@ -558,7 +501,85 @@ namespace
         if (state->camControl.movingDown)
             state->camControl.cameraPos.y += velocity;
 
-        std::printf("%f, %f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.y, state->camControl.cameraPos.z);
+        // std::printf("%f, %f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.y, state->camControl.cameraPos.z);
+    }
+
+    void drawMesh(
+        GLuint vao, 
+        GLuint vertexCount, 
+        const Mat44f &projCameraWorld, 
+        const Mat33f &normalMatrix, 
+        State_ &state
+    ) {
+      glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+      glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
+
+      glBindVertexArray(vao);
+      glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    }
+
+    // Contains main rendering logic
+    void renderScene( State_ &state ) {
+        // === Setup Lighting ===
+        // Original directional lighting
+        Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
+
+        glUniform3fv( state.renderData.uDirectLightDirLocation, 1, &directLightDir.x );
+        glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.6f, 0.6f, 0.0f );
+        glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.2f, 0.2f, 0.2f );
+
+        // Point lights
+        for (int i = 0; i < NUM_LIGHTS; ++i) {
+            // Transform position to camera space
+            Vec4f lightPos4f = state.renderData.world2camera * Vec4f { state.renderData.lights[i].position.x, 
+                                                                       state.renderData.lights[i].position.y,
+                                                                       state.renderData.lights[i].position.z,
+                                                                       1.f };
+
+            Vec3f lightPositionViewSpace = Vec3f { lightPos4f.x, lightPos4f.y, lightPos4f.z };
+
+            glUniform3fv( state.renderData.uLightPosViewSpaceLocations[i], 1, &lightPositionViewSpace.x );
+            glUniform3fv( state.renderData.uLightDiffuseLocations[i], 1, &state.renderData.lights[i].diffuse.x );
+            glUniform3fv( state.renderData.uLightSpecularLocations[i], 1, &state.renderData.lights[i].specular.x );
+            glUniform3fv( state.renderData.uSceneAmbientLocations[i], 1, &state.renderData.lights[i].ambient.x );
+        }
+
+        // Set up uniforms
+
+        // === Setting up models ===
+        // Langerso translations
+        Mat44f model2world = kIdentity44f;
+        Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
+        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
+
+        // Translations and projection for first launchpad
+        Mat44f model2worldLaunchpad = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+        Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+
+        Mat44f model2worldLaunchpad2 = model2world * make_translation( Vec3f { -7.f, 0.f, 7.f } );
+        Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+
+        // Space vehicle translations
+        Mat44f model2worldVehicle = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
+
+        // === Drawing ===
+        // Langerso mesh
+        glUniform1i(state.renderData.uUseTextureLocation, GL_TRUE);
+        drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
+
+        glUniform1i(state.renderData.uUseTextureLocation, GL_FALSE);
+        // Draw first landing pad
+        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
+
+        // Draw second landing pad
+        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
+
+        // Draw Vehicle
+        drawMesh(state.renderData.vehicleVao, state.renderData.vehicleVertexCount, projCameraWorld_V, normalMatrix_V, state);
     }
 }
 
