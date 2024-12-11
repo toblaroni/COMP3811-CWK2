@@ -1,5 +1,7 @@
 #version 430
 
+#define NUM_LIGHTS 3
+
 in vec2 v2fTexCoord;
 in vec3 v2fNormal;
 
@@ -12,16 +14,19 @@ in float v2fIllum;
 
 in vec3 v2fViewPos;
 
+uniform bool uUseTexture;
+
 uniform vec3 uLightDir;
 
+// Stuff point lights
+uniform vec3 uLightPosViewSpace;
 uniform vec3 uLightDiffuse;
 uniform vec3 uLightSpecular;
 uniform vec3 uSceneAmbient;
-uniform bool uUseTexture;
-uniform vec3 uLightPosViewSpace;
 
 layout( location = 0 ) out vec3 oColor;
 
+// This doesn't work on Mac
 layout( binding = 0 ) uniform sampler2D uTexture;
 
 
@@ -65,7 +70,7 @@ void main()
     // Original directional lighting
     float nDotL = max( 0.0, dot( normal, uLightDir ) );
     // Just use the diffuse component of the material since this is what v2fcolor was originally
-    vec3 lighting = (uSceneAmbient + nDotL * uLightDiffuse) * v2fDiffuse;
+    vec3 lighting = (uSceneAmbient * v2fAmbient + nDotL * uLightDiffuse) * v2fDiffuse;
 
     lighting += calcBlinnPhongLighting( normal, lightDir, viewDir );
 

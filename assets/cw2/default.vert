@@ -11,9 +11,9 @@ layout( location = 6 ) in float iShininess;
 layout( location = 7 ) in vec3 iEmissive;
 layout( location = 8 ) in float iIllum;
 
-// layout( location = 0 ) uniform mat4 uProjCameraWorld;
+
 uniform mat4 uProjCameraWorld;
-uniform mat4 uViewMatrix;   // This is camera space
+uniform mat4 uViewMatrix;       // This is camera space
 uniform mat3 uNormalMatrix;
 
 out vec2 v2fTexCoord;
