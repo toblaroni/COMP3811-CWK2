@@ -65,6 +65,28 @@ namespace
             Mat44f view;
         } camControl;
 
+
+        struct VehicleCtrl_ {
+
+            bool launch = false;
+            Vec3f origin = { 3.f, 0.f, -5.f };
+            Vec3f position = origin;
+
+            float radius = std::sqrt(origin.x * origin.x + origin.z * origin.z);
+
+            float time = 0.f;
+
+            float theta = 0.f;
+
+
+
+
+        } vehicleControl;
+
+
+
+
+
         double deltaTime;    // This allows smooth camera movement
     };
 	
@@ -321,6 +343,7 @@ int main() try
 
     double last = glfwGetTime();
 
+
 	// Main loop
 	while( !glfwWindowShouldClose( window ) )
 	{
@@ -386,10 +409,52 @@ int main() try
         Mat44f projCameraWorld_LP2 = projection * world2camera * model2worldLaunchpad2;
         Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
 
-        // Space vehicle translations
-        Mat44f model2worldVehicle = model2world * make_translation( Vec3f { 3.f, 0.f, -5.f } );
+
+        if ( state.vehicleControl.launch) {
+                
+            // Define constants
+            float accelerationUp = 2.0f; // Upward acceleration during thrust
+            float gravity = 2.5f;        // Gravitational acceleration
+            float accelerationZ = 1.5f;  // Forward acceleration in Z
+            float maxThrustTime = 2.0f;   // Time for upward thrust phase
+
+            state.vehicleControl.time += state.deltaTime;
+
+            // Compute time into deceleration phase
+            float decelTime = std::max(0.0f, state.vehicleControl.time - maxThrustTime);
+
+            // Calculate velocity in the y-axis
+            float velocityY = 0.0f;
+            if (state.vehicleControl.time <= maxThrustTime) {
+                // During thrust phase
+                velocityY = accelerationUp * state.vehicleControl.time;
+            } else {
+                // During deceleration phase under gravity
+                velocityY = accelerationUp * maxThrustTime - gravity * decelTime;
+                if (velocityY <= 0.0f) {
+                    // Stop vertical motion when velocity reaches zero
+                    velocityY = 0.0f;
+                }
+            }
+
+            state.vehicleControl.position.y += velocityY * state.deltaTime;
+
+            // Update velocity in Z (starts at 0 and accelerates)
+            float velocityZ = accelerationZ * state.vehicleControl.time;
+
+            // Update position in the z-axis
+            state.vehicleControl.position.z += velocityZ * state.deltaTime;
+
+            // Compute rotation angle based on velocity vector
+            state.vehicleControl.theta = std::atan2(velocityZ, velocityY);
+            
+        }
+
+        // Combine translation and rotation
+        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
         Mat44f projCameraWorld_V = projection * world2camera * model2worldVehicle;
         Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
+
 
 
 		// Draw scene
@@ -475,7 +540,7 @@ int main() try
         // Bind Vehicle VAO
         glBindVertexArray( vehicleVao );
 
-        // Draw first landing pad
+        // Draw Vehicle
         glUniformMatrix4fv(
             uProjCameraWorldLocation,
             1, GL_TRUE, projCameraWorld_V.v
@@ -576,6 +641,17 @@ namespace
                 }
                 state->camControl.topDown = !state->camControl.topDown;
             }
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
+                state->vehicleControl.launch ^= true; 
+            }
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
+                state->vehicleControl.launch = false;
+                state->vehicleControl.origin = { 3.f, 0.f, -5.f };
+                state->vehicleControl.position = state->vehicleControl.origin;
+                state->vehicleControl.time = 0.f;
+
+                state->vehicleControl.theta = 0.f;
+            }
 
             if (aAction == GLFW_PRESS || aAction == GLFW_RELEASE) 
             {
@@ -608,6 +684,7 @@ namespace
                     case GLFW_KEY_LEFT_CONTROL:
                         state->camControl.moveSlow = isPressed;
                         break;
+
                 }
             }
         }

@@ -47,7 +47,7 @@ SimpleMeshData make_vehicle() {
     );
 
     auto middle = make_cylinder(
-        true, 16, spaceshipRed,
+        true, 16, spaceshipLightGrey,
         make_translation({0.f, 0.2f, 0.f}) * 
         make_scaling(.1f, .3f, .1f) * 
         make_rotation_z(0.5f * std::numbers::pi_v<float>)
