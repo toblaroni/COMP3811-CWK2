@@ -1,4 +1,4 @@
-#version 430
+#version 410
 
 #define NUM_LIGHTS 3
 
@@ -31,7 +31,8 @@ uniform vec3 uSceneAmbient[NUM_LIGHTS];
 layout( location = 0 ) out vec3 oColor;
 
 // This doesn't work on Mac
-layout( binding = 0 ) uniform sampler2D uTexture;
+// layout( binding = 0 ) uniform sampler2D uTexture;
+uniform sampler2D uTexture; // No layout(binding) qualifier
 
 
 vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir, 
@@ -40,8 +41,6 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
     // Calculate Blinn-Phong lighting
     float lightDist = length(aLightPosViewSpace - v2fViewPos);
     float falloff = 1.0 / (lightDist * lightDist);
-
-    // return vec3(falloff);
 
     // Blinn-Phong Lighting 
     // K_a * I_a

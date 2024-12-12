@@ -36,6 +36,7 @@ namespace
         Vec3f diffuse;
         Vec3f specular;
         Vec3f ambient;
+		Vec3f offset;		// This is lights offset from the ship
     };
  
     // This will contain the state of our program
@@ -105,6 +106,7 @@ namespace
 
             // Point Lights
             std::vector<Light> lights = {};
+			std::vector<Vec3f> lightOrigins = {};
 
             // VAO's
             GLuint langersoVao;
@@ -136,6 +138,7 @@ namespace
 
     void update_camera_pos( State_* );
     void renderScene( State_& );
+	void initialisePointLights( State_& );
 
 	struct GLFWCleanupHelper
 	{
@@ -257,6 +260,15 @@ int main() try
 	int iwidth, iheight;
 	glfwGetFramebufferSize( window, &iwidth, &iheight );
 
+	float wscale = 1.f, hscale = 1.f;
+
+	#if defined(__APPLE__)
+		glfwGetWindowContentScale( window, &wscale, &hscale);
+	#endif
+
+	iwidth = int(iwidth / wscale);
+	iheight = int(iheight / hscale);
+
 	glViewport( 0, 0, iwidth, iheight );
 
 	// Load shader program
@@ -329,8 +341,6 @@ int main() try
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
-    printf("WINDOW SIZE: %i, %i\n", fbwidth, fbheight);
-
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
 
@@ -352,28 +362,7 @@ int main() try
     state.renderData.vehicleVao = create_vao( vehicle );
     state.renderData.vehicleVertexCount = vehicle.positions.size();
 
-
-    // Create lights
-    state.renderData.lights = {
-        Light {
-            Vec3f{2.9f, 0.27f, -4.75f},  
-            Vec3f{1.0f, 1.0f, 1.0f},
-            Vec3f{1.5f, 1.5f, 1.5f},
-            Vec3f{0.3f, 0.3f, 0.3f} 
-        },
-        Light {
-            Vec3f{2.7f, 0.27f, -5.f},
-            Vec3f{0.0f, 1.0f, 0.0f}, 
-            Vec3f{1.5f, 1.0f, 0.5f}, 
-            Vec3f{0.2f, 0.2f, 0.2f}  
-        },
-        Light {
-            Vec3f{2.99f, 0.27f, -5.26f},  
-            Vec3f{0.0f, 0.0f, 1.0f}, 
-            Vec3f{1.5f, 0.5f, 1.5f}, 
-            Vec3f{0.2f, 0.2f, 0.3f}  
-        }
-    };
+	initialisePointLights( state );
 
     double last = glfwGetTime();
 
@@ -508,7 +497,38 @@ catch( std::exception const& eErr )
 // Helper functions
 namespace
 {
+	void initialisePointLights( State_& state ) {
 
+		Vec3f lightPos1 = Vec3f{ 2.9f, 0.27f, -4.75f };
+		Vec3f lightPos2 = Vec3f{ 2.7f, 0.27f, -5.f };
+		Vec3f lightPos3 = Vec3f{ 2.99f, 0.27f, -5.26f };
+
+		// Create lights
+		state.renderData.lights = {
+			Light {
+				lightPos1,  
+				Vec3f{1.0f, 1.0f, 1.0f},
+				Vec3f{1.5f, 1.5f, 1.5f},
+				Vec3f{0.3f, 0.3f, 0.3f},
+				lightPos1 - state.vehicleControl.origin		// Offset from the ship
+			},
+			Light {
+				lightPos2,
+				Vec3f{0.0f, 1.0f, 0.0f}, 
+				Vec3f{1.5f, 1.0f, 0.5f}, 
+				Vec3f{0.2f, 0.2f, 0.2f},  
+				lightPos2 - state.vehicleControl.origin
+			},
+			Light {
+				lightPos3,
+				Vec3f{0.0f, 0.0f, 1.0f}, 
+				Vec3f{1.5f, 0.5f, 1.5f}, 
+				Vec3f{0.2f, 0.2f, 0.3f},
+				lightPos3 - state.vehicleControl.origin
+			}
+		};
+	}
+	
     void update_camera_pos( State_* state ) {
         float speedModifier = state->camControl.moveFast ? 2.f : state->camControl.moveSlow ? 0.5f : 1.f;
         float velocity = kMovementPerSecond_ * state->deltaTime * speedModifier;
@@ -563,23 +583,6 @@ namespace
         glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.5f, 0.5f, 0.0f );
         glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.1f, 0.1f, 0.1f );
 
-        // Point lights
-        for (int i = 0; i < NUM_LIGHTS; ++i) {
-            // Transform position to camera space
-            Vec4f lightPos4f = state.renderData.world2camera * Vec4f { state.renderData.lights[i].position.x, 
-                                                                       state.renderData.lights[i].position.y,
-                                                                       state.renderData.lights[i].position.z,
-                                                                       1.f };
-
-            Vec3f lightPositionViewSpace = Vec3f { lightPos4f.x, lightPos4f.y, lightPos4f.z };
-
-            glUniform3fv( state.renderData.uLightPosViewSpaceLocations[i], 1, &lightPositionViewSpace.x );
-            glUniform3fv( state.renderData.uLightDiffuseLocations[i], 1, &state.renderData.lights[i].diffuse.x );
-            glUniform3fv( state.renderData.uLightSpecularLocations[i], 1, &state.renderData.lights[i].specular.x );
-            glUniform3fv( state.renderData.uSceneAmbientLocations[i], 1, &state.renderData.lights[i].ambient.x );
-        }
-
-        // Set up uniforms
 
         // === Setting up models ===
         // Langerso translations
@@ -597,7 +600,7 @@ namespace
         Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
 
         // Space vehicle translations
-        if ( state.vehicleControl.launch) {
+        if ( state.vehicleControl.launch ) {
                 
             // Define constants
             float accelerationUp = 2.0f; // Upward acceleration during thrust
@@ -633,10 +636,47 @@ namespace
             // Update position in the z-axis
             state.vehicleControl.position.z += velocityZ * state.deltaTime;
 
-            // Compute rotation angle based on velocity vector
+			// Update lights to follow the ship
+			for (int i = 0; i < NUM_LIGHTS; ++i)
+			{
+				// Define a fixed offset for each light relative to the ship's position
+				Vec3f lightOffset = state.renderData.lights[i].offset;
+
+				// Calculate rotated offset based on ship's orientation
+				float cosTheta = std::cos(state.vehicleControl.theta);
+				float sinTheta = std::sin(state.vehicleControl.theta);
+				Vec3f rotatedOffset = {
+					cosTheta * lightOffset.x - sinTheta * lightOffset.z,
+					lightOffset.y, // Y remains unchanged for rotation around Z
+					sinTheta * lightOffset.x + cosTheta * lightOffset.z
+				};
+
+				// Update light position to follow the ship
+				state.renderData.lights[i].position = state.vehicleControl.position + rotatedOffset;
+			}
+
+			// Compute rotation angle based on velocity vector
             state.vehicleControl.theta = std::atan2(velocityZ, velocityY);
             
         }
+
+        // Point lights
+		// Do we need to do this every frame?
+        for (int i = 0; i < NUM_LIGHTS; ++i) {
+            // Transform position to camera space
+            Vec4f lightPos4f = state.renderData.world2camera * Vec4f { state.renderData.lights[i].position.x, 
+                                                                       state.renderData.lights[i].position.y,
+                                                                       state.renderData.lights[i].position.z,
+                                                                       1.f };
+
+            Vec3f lightPositionViewSpace = Vec3f { lightPos4f.x, lightPos4f.y, lightPos4f.z };
+
+            glUniform3fv( state.renderData.uLightPosViewSpaceLocations[i], 1, &lightPositionViewSpace.x );
+            glUniform3fv( state.renderData.uLightDiffuseLocations[i], 1, &state.renderData.lights[i].diffuse.x );
+            glUniform3fv( state.renderData.uLightSpecularLocations[i], 1, &state.renderData.lights[i].specular.x );
+            glUniform3fv( state.renderData.uSceneAmbientLocations[i], 1, &state.renderData.lights[i].ambient.x );
+        }
+
         // Combine translation and rotation
         Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
         Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
@@ -718,6 +758,9 @@ namespace
                 state->vehicleControl.position = state->vehicleControl.origin;
                 state->vehicleControl.time = 0.f;
                 state->vehicleControl.theta = 0.f;
+
+				// Reset lights
+				initialisePointLights( *state );
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_V) { state->isSplitScreen = !state->isSplitScreen; }
