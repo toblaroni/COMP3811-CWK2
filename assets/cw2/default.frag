@@ -14,6 +14,7 @@ in float v2fIllum;
 
 in vec3 v2fViewPos;
 
+uniform mat4 uViewMatrix;
 uniform bool uUseTexture;
 
 // Directional light
@@ -23,7 +24,7 @@ uniform vec3 uDirectLightDiffuse;
 
 // Stuff point lights
 // Multiple lights - https://opentk.net/learn/chapter2/6-multiple-lights.html
-uniform vec3 uLightPosViewSpace[NUM_LIGHTS];
+uniform vec3 uLightPos[NUM_LIGHTS];
 uniform vec3 uLightDiffuse[NUM_LIGHTS];
 uniform vec3 uLightSpecular[NUM_LIGHTS];
 uniform vec3 uSceneAmbient[NUM_LIGHTS];
@@ -34,13 +35,16 @@ layout( location = 0 ) out vec3 oColor;
 // layout( binding = 0 ) uniform sampler2D uTexture;
 uniform sampler2D uTexture; // No layout(binding) qualifier
 
-
 vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir, 
-                             vec3 aLightPosViewSpace, vec3 aSceneAmbient, 
+                             vec3 aLightPos, vec3 aSceneAmbient, 
                              vec3 aLightDiffuse, vec3 aLightSpecular ) {
+    
+    
     // Calculate Blinn-Phong lighting
-    float lightDist = length(aLightPosViewSpace - v2fViewPos);
+    float lightDist = length(aLightPos - v2fViewPos);
     float falloff = 1.0 / (lightDist * lightDist);
+
+    // return vec3(falloff);
 
     // Blinn-Phong Lighting 
     // K_a * I_a
@@ -52,7 +56,7 @@ vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir,
 
     // Intensify specular contribution
     // Make highlights pop and shiny things shine more
-    float spec_modifier = 20.0;
+    float spec_modifier = 5.0;
 
     vec3 H = normalize(lightDir + viewDir);    // Half vector
     float hDotN = max(0.0, dot(H, normal));
@@ -77,18 +81,18 @@ void main()
     // Just use the diffuse component of the material since this is what v2fcolor was originally
     vec3 lighting = (uDirectLightAmbient + nDotL * uDirectLightDiffuse) * v2fDiffuse;
 
-    // lighting = vec3(0.0);    // Debugging
-
     // === Point lights ===
     // Calculate view direction
     // This is direction from fragment to camera
     vec3 viewDir = normalize(-v2fViewPos);
 
-    for (int i = 0; i < NUM_LIGHTS; ++i) {    // Need to apply directional light here aswell?
-        vec3 lightDir = normalize(uLightPosViewSpace[i] - v2fViewPos);
+    for (int i = 0; i < NUM_LIGHTS; ++i) {
+        vec3 lightPosViewSpace = (uViewMatrix * vec4(uLightPos[i], 1.0)).xyz;   // Translate to view pos
+
+        vec3 lightDir = normalize(lightPosViewSpace - v2fViewPos);
         lighting += calcBlinnPhongLighting(
             normal, lightDir, viewDir,
-            uLightPosViewSpace[i], uSceneAmbient[i],
+            lightPosViewSpace, uSceneAmbient[i],
             uLightDiffuse[i], uLightSpecular[i]
         );
     }

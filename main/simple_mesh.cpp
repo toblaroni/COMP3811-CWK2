@@ -1,7 +1,5 @@
 #include "simple_mesh.hpp"
 
-#include <iostream>
-
 SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
 {
 	aM.positions.insert( aM.positions.end(), aN.positions.begin(), aN.positions.end() );
@@ -16,17 +14,13 @@ SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
     std::size_t materialOffset = aM.materials.size() - aN.materials.size();
 
     // Concatenate material_ids with adjustment
-    // This doesn't work properly but it's fine...
-    // Need to update the material indices to there new position which is a bit involved i think...
     std::transform(
-        aN.material_ids.begin(),
-        aN.material_ids.end(),
-        std::back_inserter(aM.material_ids),
-        [materialOffset](std::size_t id) { return id + materialOffset; }
+        aN.material_ids.begin(),    // Start of source
+        aN.material_ids.end(),      // End of source range
+        std::back_inserter(aM.material_ids),    // output iterator that appends to aM
+        [materialOffset](std::size_t id) { return id + materialOffset; }    // Lambda function that adapts IDs
     );
 
-
-    // Adding materials here ? not sure we need it
 	return aM;
 }
 
@@ -34,22 +28,9 @@ SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
 GLuint create_vao( SimpleMeshData &aMeshData )
 {
     // Add defaults to the mesh if needed
-    // TODO: REPLACE COLOR ARGUMENT IN CUBE, CONE, CYLINDER, ETC WITH MATERIAL
     if (aMeshData.texcoords.empty()) {
         std::vector<Vec2f> defaultTexcoords(aMeshData.positions.size(), Vec2f{0.0f, 0.0f});
         aMeshData.texcoords = std::move(defaultTexcoords);
-    }
-
-    if (aMeshData.material_ids.empty() || aMeshData.materials.empty()) {
-        std::vector<int> defaultMaterialIDs (aMeshData.positions.size(), 0);
-        Material defaultMaterial = { {0.1f, 0.1f, 0.1f},    // Ambience
-                                     {0.8f, 0.8f, 0.8f},    // Diffuse
-                                     {0.5f, 0.5f, 0.5f},    // Specular
-                                     15.0f,                 // Shininess
-                                     {0.0f, 0.0f, 0.0f},    // Emissive
-                                     1.0f };                // Illum
-        aMeshData.material_ids = std::move(defaultMaterialIDs);
-        aMeshData.materials = { defaultMaterial };
     }
 
     // Generate object buffers for positions
