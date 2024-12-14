@@ -43,6 +43,7 @@ namespace
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
+		ShaderProgram* UI_prog;
         
         bool isSplitScreen = false;
         
@@ -279,6 +280,12 @@ int main() try
 		{ GL_FRAGMENT_SHADER, "assets/cw2/default.frag" }
 	} );
 
+	// Load UI shader program
+	ShaderProgram UI_prog( {
+		{ GL_VERTEX_SHADER, "assets/cw2/UI.vert" },
+		{ GL_FRAGMENT_SHADER, "assets/cw2/UI.frag" }
+	} );
+
 
     // FIX FOR 4.1
     state.renderData.uDirectLightDirLocation     = glGetUniformLocation(prog.programId(), "uDirectLightDir");
@@ -339,6 +346,7 @@ int main() try
 
     // Initialise state
     state.prog = &prog;
+	state.UI_prog = &UI_prog;
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
@@ -434,6 +442,9 @@ int main() try
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(prog.programId());
+
 		//TODO: draw frame
         if (!state.isSplitScreen) {
             state.renderData.projection = make_perspective_projection(
@@ -441,8 +452,7 @@ int main() try
                 fbwidth / float(fbheight),                  // Aspect ratio
                 0.1f, 100.0f                                // Near / far 
             );
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glUseProgram(prog.programId());
+
 
             glUniformMatrix4fv(
                 state.renderData.uViewMatrixLocation, 1,
@@ -457,7 +467,6 @@ int main() try
                 0.1f, 100.0f                // Near / far 
             );
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glViewport(0, 0, fbwidth/2, fbheight);
 
             glUniformMatrix4fv(state.renderData.uViewMatrixLocation, 1,
@@ -573,6 +582,11 @@ namespace
 
     // Contains main rendering logic
     void renderScene( State_ &state ) {
+
+		glUseProgram( state.prog->programId() );
+		glEnable( GL_DEPTH_TEST );
+
+
         // === Setup Lighting ===
         // Original directional lighting
         Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
@@ -707,6 +721,74 @@ namespace
         // Draw second launch pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
 
+
+		// === UI ===
+        glUseProgram( state.UI_prog->programId() );
+		glDisable( GL_DEPTH_TEST );
+
+		// Here we define the data
+		static float const kPositions[] = {
+			// Original triangle
+			0.f, 0.8f,
+			-0.7f, -0.8f,
+			0.7f, -0.8f,
+		};
+
+		static float const kColors[] = {
+			0.5f, 0.5f, 0.5f, 0.5f,
+			0.5f, 0.5f, 0.5f, 0.5f,
+			0.5f, 0.5f, 0.5f, 0.5f,
+		};
+
+		GLuint positionVBO = 0;
+		glGenBuffers( 1, &positionVBO );
+		glBindBuffer( GL_ARRAY_BUFFER, positionVBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeof(kPositions), kPositions, GL_STATIC_DRAW );
+
+		GLuint colorVBO = 0;
+		glGenBuffers( 1, &colorVBO );
+		glBindBuffer( GL_ARRAY_BUFFER, colorVBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeof(kColors), kColors, GL_STATIC_DRAW );
+
+		
+		GLuint vao = 0;
+		glGenVertexArrays( 1, &vao );
+		glBindVertexArray( vao );
+
+
+
+		glBindBuffer( GL_ARRAY_BUFFER, positionVBO ); 
+		glVertexAttribPointer(
+			0,
+			2, GL_FLOAT, GL_FALSE,
+			0,
+			0
+		);
+		glEnableVertexAttribArray( 0 );
+
+		glBindBuffer( GL_ARRAY_BUFFER, colorVBO ); 
+		glVertexAttribPointer(
+			1,
+			4, GL_FLOAT, GL_FALSE,
+			0,
+			0
+		);
+		glEnableVertexAttribArray( 1 );
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+		glDrawArrays( GL_TRIANGLES, 0, 3 );
+
+		// Cleanup
+		glBindVertexArray( 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+		glDeleteBuffers( 1, &colorVBO );
+		glDeleteBuffers( 1, &positionVBO );
+
+		glDisable(GL_BLEND);
 
     }
 }
