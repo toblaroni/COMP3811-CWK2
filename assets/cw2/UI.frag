@@ -3,13 +3,15 @@
 
 in vec4 v2fColor;
 
-layout( location = 0 ) out vec4 oColor;
 
+uniform vec4 uButtonActiveColor;
+
+layout( location = 0 ) out vec4 oColor;
 
 
 void main()
 {
 
-    oColor = v2fColor;
+    oColor = v2fColor * uButtonActiveColor;
 
 }

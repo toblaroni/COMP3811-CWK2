@@ -16,11 +16,17 @@
 #include "../vmlib/mat44.hpp"
 #include "../vmlib/mat33.hpp"
 
+#include "user_interface.hpp"
 #include "loadobj.hpp"
 #include "texture.hpp"
 #include "vehicle.hpp"
 
 #define NUM_LIGHTS 3
+
+#define NORMAL 0
+#define MOUSE_OVER 1
+#define PRESSED 2
+
 
 namespace
 {
@@ -31,6 +37,8 @@ namespace
 
     int fbwidth = 0;
     int fbheight = 0;
+
+	UserInterface UI;
 
     struct Light {
         Vec3f position;     // Make sure to convert to camera space
@@ -86,6 +94,7 @@ namespace
             GLuint langersoVertexCount;
             GLuint landingPadVertexCount;
             GLuint vehicleVertexCount;
+			GLuint UIVertexCount;
 
             // Uniform locations
             GLuint uDirectLightDirLocation;
@@ -103,6 +112,8 @@ namespace
             GLuint uViewMatrixLocation;
             GLuint uModel2WorldLocation;
 
+			GLuint uButtonActiveColorLocation;
+
             // Matrices
             Mat44f world2camera;
             Mat44f projection;
@@ -115,6 +126,8 @@ namespace
             GLuint langersoVao;
             GLuint landingPadVao;
             GLuint vehicleVao;
+
+			GLuint UI_vao;
 
             // Texture ID
             GLuint textureObjectId;
@@ -287,6 +300,12 @@ int main() try
 	} );
 
 
+	UI.add_button("Launch", { -1.f, 0.f }, { -0.2f, -1.f }, { 1.f, 0.f, 0.f, 0.5f });
+	UI.add_button("Reset", { 0.2f, 0.f }, { 1.f, -1.f }, { 1.f, 0.f, 0.f, 0.5f });
+
+
+
+
     // FIX FOR 4.1
     state.renderData.uDirectLightDirLocation     = glGetUniformLocation(prog.programId(), "uDirectLightDir");
 	state.renderData.uDirectLightAmbientLocation = glGetUniformLocation(prog.programId(), "uDirectLightAmbient");
@@ -297,6 +316,8 @@ int main() try
 	state.renderData.uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
 	state.renderData.uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
 	state.renderData.uModel2WorldLocation     = glGetUniformLocation(prog.programId(), "uModel2World");
+
+	state.renderData.uButtonActiveColorLocation     = glGetUniformLocation(UI_prog.programId(), "uButtonActiveColor");
 
     // Generate locations for lights
     for (int i = 0; i < NUM_LIGHTS; ++i) {
@@ -370,6 +391,9 @@ int main() try
     auto vehicle = make_vehicle();
     state.renderData.vehicleVao = create_vao( vehicle );
     state.renderData.vehicleVertexCount = vehicle.positions.size();
+
+	state.renderData.UI_vao = create_UI_vao(UI);
+	state.renderData.UIVertexCount = UI.buttons.size() * 6;
 
 	initialisePointLights( state );
 
@@ -726,67 +750,43 @@ namespace
         glUseProgram( state.UI_prog->programId() );
 		glDisable( GL_DEPTH_TEST );
 
-		// Here we define the data
-		static float const kPositions[] = {
-			// Original triangle
-			0.f, 0.8f,
-			-0.7f, -0.8f,
-			0.7f, -0.8f,
-		};
-
-		static float const kColors[] = {
-			0.5f, 0.5f, 0.5f, 0.5f,
-			0.5f, 0.5f, 0.5f, 0.5f,
-			0.5f, 0.5f, 0.5f, 0.5f,
-		};
-
-		GLuint positionVBO = 0;
-		glGenBuffers( 1, &positionVBO );
-		glBindBuffer( GL_ARRAY_BUFFER, positionVBO );
-		glBufferData( GL_ARRAY_BUFFER, sizeof(kPositions), kPositions, GL_STATIC_DRAW );
-
-		GLuint colorVBO = 0;
-		glGenBuffers( 1, &colorVBO );
-		glBindBuffer( GL_ARRAY_BUFFER, colorVBO );
-		glBufferData( GL_ARRAY_BUFFER, sizeof(kColors), kColors, GL_STATIC_DRAW );
-
-		
-		GLuint vao = 0;
-		glGenVertexArrays( 1, &vao );
-		glBindVertexArray( vao );
-
-
-
-		glBindBuffer( GL_ARRAY_BUFFER, positionVBO ); 
-		glVertexAttribPointer(
-			0,
-			2, GL_FLOAT, GL_FALSE,
-			0,
-			0
-		);
-		glEnableVertexAttribArray( 0 );
-
-		glBindBuffer( GL_ARRAY_BUFFER, colorVBO ); 
-		glVertexAttribPointer(
-			1,
-			4, GL_FLOAT, GL_FALSE,
-			0,
-			0
-		);
-		glEnableVertexAttribArray( 1 );
-
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		
+		glBindVertexArray(state.renderData.UI_vao);
 
-		glDrawArrays( GL_TRIANGLES, 0, 3 );
+		for (size_t i = 0; i < UI.buttons.size(); i++) {
+			if (UI.buttons[i].state == MOUSE_OVER) {
+				// If Hover over
+				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+			if (UI.buttons[i].state == PRESSED) {
+				// If pressed
+				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+			else {
+				// keep same color
+				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+
+			glDrawArrays(GL_TRIANGLES, i*6, 6);
+		}
+
+
+
+        
+
+
+
 
 		// Cleanup
 		glBindVertexArray( 0 );
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
-		glDeleteBuffers( 1, &colorVBO );
-		glDeleteBuffers( 1, &positionVBO );
 
 		glDisable(GL_BLEND);
 
@@ -940,6 +940,21 @@ namespace
                 direction.z = sinYaw * cosPitch;
                 state->camControl.cameraFront = normalize(direction);
             }
+			else {
+				fprintf(stderr, "Camera is not active %f %f\n", (UI.buttons[0].corner1.x + 1.0f) * 0.5f * fbwidth, (UI.buttons[0].corner2.x + 1.0f) * 0.5f * fbwidth);
+				
+				// NDC to screen coords, fbwidth = fnwidth / 2????, 
+				for (auto b: UI.buttons) {
+					if ( (b.corner1.x + 1.0f) * 0.25f * fbwidth <= aMouseXPos && aMouseXPos <= (b.corner2.x + 1.0f) * 0.25f * fbwidth && 
+						 (1.0f + b.corner1.y) * 0.25f * fbheight <= aMouseXPos && aMouseXPos <= (1.0f + b.corner2.y) * 0.25f * fbheight ) {
+						b.state = MOUSE_OVER;
+					}
+					else {
+						b.state = NORMAL;
+					}
+
+				}
+			}
         }
     }
 
@@ -959,6 +974,7 @@ namespace
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
         }
+
     }
 
 }
