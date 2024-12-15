@@ -38,7 +38,6 @@ public:
     void add_text(const std::string& text, const Vec2f& position, const Vec4f& color) {
         texts.push_back({text, position, color});
     }
-
 };
 
 // Function to create a VAO for the UI

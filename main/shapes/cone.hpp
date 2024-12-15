@@ -5,11 +5,11 @@
 
 #include <cstdlib>
 
-#include "simple_mesh.hpp"
+#include "../simple_mesh.hpp"
 
-#include "../vmlib/vec3.hpp"
-#include "../vmlib/mat44.hpp"
-#include "../vmlib/mat33.hpp"
+#include "../../vmlib/vec3.hpp"
+#include "../../vmlib/mat44.hpp"
+#include "../../vmlib/mat33.hpp"
 
 SimpleMeshData make_cone(
 	bool aCapped = true,

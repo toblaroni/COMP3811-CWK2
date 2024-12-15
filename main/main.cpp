@@ -23,9 +23,18 @@
 
 #define NUM_LIGHTS 3
 
+
+// Camera Views
+#define FREE_ROAM 0
+#define FIXED_DISTANCE 1
+#define GROUND_POSITION 2
+
+// UI Button States
 #define NORMAL 0
 #define MOUSE_OVER 1
 #define PRESSED 2
+
+
 
 
 namespace
@@ -54,6 +63,8 @@ namespace
 		ShaderProgram* UI_prog;
         
         bool isSplitScreen = false;
+
+
         
         /*
          *  === Camera Controls ===
@@ -65,7 +76,7 @@ namespace
             bool cameraActive = false;
             bool topDown = false;
 
-            int8_t camView = 0;
+            size_t camView = FREE_ROAM;
 
             bool moveFast = false;
             bool moveSlow = false;
@@ -94,7 +105,6 @@ namespace
             GLuint langersoVertexCount;
             GLuint landingPadVertexCount;
             GLuint vehicleVertexCount;
-			GLuint UIVertexCount;
 
             // Uniform locations
             GLuint uDirectLightDirLocation;
@@ -189,15 +199,15 @@ int main() try
 
 	//glfwWindowHint( GLFW_RESIZABLE, GLFW_FALSE );
 
-	#if !defined(__APPLE__)
+#	if !defined(__APPLE__)
 	// Most platforms will support OpenGL 4.3
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-	#else 
+#	else 
 	// Apple has at most OpenGL 4.1, so don't ask for something newer.
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
-	#endif // ~__APPLE__
+#	endif // ~__APPLE__
 
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
@@ -300,8 +310,8 @@ int main() try
 	} );
 
 
-	UI.add_button("Launch", { -1.f, 0.f }, { -0.2f, -1.f }, { 1.f, 0.f, 0.f, 0.5f });
-	UI.add_button("Reset", { 0.2f, 0.f }, { 1.f, -1.f }, { 1.f, 0.f, 0.f, 0.5f });
+	UI.add_button("Launch", { -0.5f, -0.6f }, { -0.1f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
+	UI.add_button("Reset", { 0.1f, -0.6f }, { 0.5f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
 
 
 
@@ -393,7 +403,6 @@ int main() try
     state.renderData.vehicleVertexCount = vehicle.positions.size();
 
 	state.renderData.UI_vao = create_UI_vao(UI);
-	state.renderData.UIVertexCount = UI.buttons.size() * 6;
 
 	initialisePointLights( state );
 
@@ -432,12 +441,12 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
-        if (state.camControl.camView == 1) {
+        if (state.camControl.camView == FIXED_DISTANCE) {
             state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
             state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
             state.camControl.cameraUp = { 0.f, 1.f, 0.f };
         }
-        else if (state.camControl.camView == 2) {
+        else if (state.camControl.camView == GROUND_POSITION) {
             state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
             state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
             state.camControl.cameraUp = { 0.f, 1.f, 0.f };
@@ -762,14 +771,14 @@ namespace
 				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
-			if (UI.buttons[i].state == PRESSED) {
+			else if (UI.buttons[i].state == PRESSED) {
 				// If pressed
 				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
 			else {
 				// keep same color
-				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				static float const baseColor[] = {1.f, 1.f, 1.f, 0.5f};
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
 
@@ -821,23 +830,17 @@ namespace
                     state->camControl.cameraUp = { 0.f, 0.f, 1.f };
                 } else {
                     state->camControl.cameraPos = { 0.f, 3.f, 3.f };
-                    state->camControl.cameraFront = Vec3f { 0.f, 0.f, -1.f };
-                    state->camControl.cameraUp = Vec3f{ 0.f, 1.f, 0.f };  // Up vector in coordinate space.
+                    state->camControl.cameraFront = { 0.f, 0.f, -1.f };
+                    state->camControl.cameraUp = { 0.f, 1.f, 0.f };  // Up vector in coordinate space.
                 }
                 state->camControl.topDown = !state->camControl.topDown;
             }
 
-            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C) {
-
-                if (state->camControl.camView == 0) {
-                    state->camControl.camView = 1;
-                }
-                else if (state->camControl.camView == 1) {
-                    state->camControl.camView = 2;
-                }
-                else {
-                    state->camControl.camView = 0;
-                }
+            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C)
+			{
+				// Cycle through camera views
+				++state->camControl.camView;
+				state->camControl.camView %= 3;
 
             }
 
@@ -941,19 +944,33 @@ namespace
                 state->camControl.cameraFront = normalize(direction);
             }
 			else {
-				fprintf(stderr, "Camera is not active %f %f\n", (UI.buttons[0].corner1.x + 1.0f) * 0.5f * fbwidth, (UI.buttons[0].corner2.x + 1.0f) * 0.5f * fbwidth);
-				
+
 				// NDC to screen coords, fbwidth = fnwidth / 2????, 
-				for (auto b: UI.buttons) {
-					if ( (b.corner1.x + 1.0f) * 0.25f * fbwidth <= aMouseXPos && aMouseXPos <= (b.corner2.x + 1.0f) * 0.25f * fbwidth && 
-						 (1.0f + b.corner1.y) * 0.25f * fbheight <= aMouseXPos && aMouseXPos <= (1.0f + b.corner2.y) * 0.25f * fbheight ) {
-						b.state = MOUSE_OVER;
+				for (auto& b : UI.buttons) {
+					// Convert corner1 and corner2 from NDC to screen space
+					float corner1X, corner2X, corner1Y, corner2Y;
+					if (!state->isSplitScreen){
+						corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
+						corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
 					}
-					else {
-						b.state = NORMAL;
+					else{
+						corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
+						corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
 					}
 
+					corner1Y = fbheight/2.f - (b.corner1.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
+					corner2Y = fbheight/2.f - (b.corner2.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
+
+
+					// Check if the mouse position (screen space) is within the button boundaries
+					if (corner1X <= aMouseXPos && aMouseXPos <= corner2X &&
+						corner1Y <= aMouseYPos && aMouseYPos <= corner2Y) {
+						b.state = MOUSE_OVER;
+					} else {
+						b.state = NORMAL;
+					}
 				}
+
 			}
         }
     }
@@ -972,6 +989,35 @@ namespace
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
                 else
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+			if( GLFW_MOUSE_BUTTON_LEFT == aButton && GLFW_PRESS == aAction ) {
+
+                for (auto& b : UI.buttons) {
+					if (b.state == MOUSE_OVER) {
+
+						b.state = PRESSED;
+						if (b.text == "Launch") {
+							// toggle the launch
+							state->vehicleControl.launch ^= true; 
+						}
+						else if (b.text == "Reset") {
+							state->vehicleControl.launch = false;
+							state->vehicleControl.origin = { 3.f, 0.f, -5.f };
+							state->vehicleControl.position = state->vehicleControl.origin;
+							state->vehicleControl.time = 0.f;
+							state->vehicleControl.theta = 0.f;
+						}
+						
+					}
+				}
+            }
+			if( GLFW_MOUSE_BUTTON_LEFT == aButton && GLFW_RELEASE == aAction ) {
+
+                for (auto& b : UI.buttons) {
+					if (b.state == PRESSED) {
+						b.state = MOUSE_OVER;
+					}
+				}
             }
         }
 
