@@ -5,9 +5,10 @@
 
 #include "simple_mesh.hpp"
 #include "../vmlib/mat44.hpp"
-#include "cylinder.hpp"
-#include "cone.hpp"
-#include "cube.hpp"
+#include "shapes/cylinder.hpp"
+#include "shapes/cone.hpp"
+#include "shapes/cube.hpp"
+
 
 SimpleMeshData make_vehicle();
 

@@ -25,6 +25,7 @@ SimpleMeshData concatenate( SimpleMeshData aM, SimpleMeshData const& aN )
 }
 
 
+
 GLuint create_vao( SimpleMeshData &aMeshData )
 {
     // Add defaults to the mesh if needed
