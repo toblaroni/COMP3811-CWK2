@@ -56,15 +56,13 @@ namespace
         Vec3f ambient;
 		Vec3f offset;		// This is lights offset from the ship
     };
- 
+
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
 		ShaderProgram* UI_prog;
         
         bool isSplitScreen = false;
-
-
         
         /*
          *  === Camera Controls ===
@@ -95,7 +93,10 @@ namespace
             // This contains the coordinate space for the camera
             Mat44f view = {};
 
-        } camControl;
+        };
+
+        CamCtrl_ camControl;
+        CamCtrl_ camControl2;   // Second camera for split screen
 
         double deltaTime;    // This allows smooth camera movement
 
@@ -162,9 +163,11 @@ namespace
     void glfw_callback_motion_( GLFWwindow* aWindow, double aMouseXPos, double aMouseYPos );
     void glfw_callback_mouse_( GLFWwindow* aWindow, int aButton, int aAction, int aMods );
 
-    void update_camera_pos( State_* );
+    // Forward declarations
+    void update_camera_pos( State_& );
     void renderScene( State_& );
 	void initialisePointLights( State_& );
+    void configureCamera( State_& );
 
 	struct GLFWCleanupHelper
 	{
@@ -314,8 +317,6 @@ int main() try
 	UI.add_button("Reset", { 0.1f, -0.6f }, { 0.5f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
 
 
-
-
     // FIX FOR 4.1
     state.renderData.uDirectLightDirLocation     = glGetUniformLocation(prog.programId(), "uDirectLightDir");
 	state.renderData.uDirectLightAmbientLocation = glGetUniformLocation(prog.programId(), "uDirectLightAmbient");
@@ -441,184 +442,13 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
-        if (state.camControl.camView == FIXED_DISTANCE) {
-            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl.camView == GROUND_POSITION) {
-            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-
-        // Update camera position
-        update_camera_pos( &state );
-
-		//TODO: update state
-
-        state.camControl.view = look_at(
-            state.camControl.cameraPos,
-            state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-            state.camControl.cameraUp
-        );
-
-        state.renderData.world2camera = state.camControl.view;
-
-        state.renderData.projection = make_perspective_projection(
-            60.f * std::numbers::pi_v<float> / 180.f,
-            fbwidth / float(fbheight),  // Aspect ratio
-            0.1f, 100.0f                // Near / far 
-        );
-
-
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(prog.programId());
 
-		//TODO: draw frame
-        if (!state.isSplitScreen) {
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth / float(fbheight),                  // Aspect ratio
-                0.1f, 100.0f                                // Near / far 
-            );
-
-
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
-
-            renderScene(state);
-        } else {
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth/2.f / float(fbheight),  // Aspect ratio
-                0.1f, 100.0f                // Near / far 
-            );
-
-            glViewport(0, 0, fbwidth/2, fbheight);
-
-            glUniformMatrix4fv(state.renderData.uViewMatrixLocation, 1,
-                                GL_TRUE, state.renderData.world2camera.v);
-
-            renderScene(state);
-
-            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
-
-            renderScene(state);
-        }
-
-        OGL_CHECKPOINT_DEBUG();
-
-		// Display results
-		glfwSwapBuffers( window );
-	}
-
-	// Cleanup.
-	//TODO: additional cleanup
-    glBindVertexArray( 0 );
-    glUseProgram( 0 );
-    state.prog = nullptr;
-	
-	return 0;
-}
-catch( std::exception const& eErr )
-{
-	std::fprintf( stderr, "Top-level Exception (%s):\n", typeid(eErr).name() );
-	std::fprintf( stderr, "%s\n", eErr.what() );
-	std::fprintf( stderr, "Bye.\n" );
-	return 1;
-}
-
-// Helper functions
-namespace
-{
-	void initialisePointLights( State_& state ) {
-
-		Vec3f lightPos1 = Vec3f{ 2.9f,  0.3f, -4.75f };
-		Vec3f lightPos2 = Vec3f{ 2.7f,  0.3f, -5.f };
-		Vec3f lightPos3 = Vec3f{ 2.99f, 0.3f, -5.26f };
-
-		// Create lights
-		state.renderData.lights = {
-			Light {
-				lightPos1,  
-				Vec3f{1.0f, 1.0f, 1.0f},
-				Vec3f{1.5f, 1.5f, 1.5f},
-				Vec3f{0.3f, 0.3f, 0.3f},
-				lightPos1 - state.vehicleControl.origin		// Offset from the ship
-			},
-			Light {
-				lightPos2,
-				Vec3f{0.0f, 1.0f, 0.0f}, 
-				Vec3f{1.5f, 1.0f, 0.5f}, 
-				Vec3f{0.2f, 0.2f, 0.2f},  
-				lightPos2 - state.vehicleControl.origin
-			},
-			Light {
-				lightPos3,
-				Vec3f{0.0f, 0.0f, 1.0f}, 
-				Vec3f{1.5f, 0.5f, 1.5f}, 
-				Vec3f{0.2f, 0.2f, 0.3f},
-				lightPos3 - state.vehicleControl.origin
-			}
-		};
-	}
-	
-    void update_camera_pos( State_* state ) {
-        float speedModifier = state->camControl.moveFast ? 2.f : state->camControl.moveSlow ? 0.5f : 1.f;
-        float velocity = kMovementPerSecond_ * state->deltaTime * speedModifier;
-
-        // Forward / Backward
-        if (state->camControl.movingForward)
-            state->camControl.cameraPos += velocity * state->camControl.cameraFront;
-        if (state->camControl.movingBackward)
-            state->camControl.cameraPos -= velocity * state->camControl.cameraFront;
-
-        // Left / Right
-        if (state->camControl.strafingLeft)
-            // Use cross product to create the 'right vector' then move along that
-            state->camControl.cameraPos -= normalize(
-                cross(state->camControl.cameraFront, state->camControl.cameraUp)
-            ) * velocity;
-        if (state->camControl.strafingRight)
-            state->camControl.cameraPos += normalize(
-                cross(state->camControl.cameraFront, state->camControl.cameraUp)
-            ) * velocity;
-
-        // Up / Down
-        if (state->camControl.movingUp)
-            state->camControl.cameraPos.y -= velocity;
-        if (state->camControl.movingDown)
-            state->camControl.cameraPos.y += velocity;
-
-        // std::printf("%f, %f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.y, state->camControl.cameraPos.z);
-    }
-
-    void drawMesh(
-        GLuint vao, 
-        GLuint vertexCount, 
-        const Mat44f &projCameraWorld, 
-        const Mat33f &normalMatrix, 
-        State_ &state
-    ) {
-        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
-        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
-
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-    }
-
-    // Contains main rendering logic
-    void renderScene( State_ &state ) {
-
-		glUseProgram( state.prog->programId() );
 		glEnable( GL_DEPTH_TEST );
-
 
         // === Setup Lighting ===
         // Original directional lighting
@@ -691,7 +521,6 @@ namespace
 
 
         // Point lights
-		// Do we need to do this every frame?
         for (int i = 0; i < NUM_LIGHTS; ++i) {
             glUniform3fv( state.renderData.uLightPosLocations[i], 1, &state.renderData.lights[i].position.x );
             glUniform3fv( state.renderData.uLightDiffuseLocations[i], 1, &state.renderData.lights[i].diffuse.x );
@@ -699,6 +528,141 @@ namespace
             glUniform3fv( state.renderData.uSceneAmbientLocations[i], 1, &state.renderData.lights[i].ambient.x );
         }
 
+
+        configureCamera( state );
+
+        renderScene(state);
+
+        OGL_CHECKPOINT_DEBUG();
+
+		// Display results
+		glfwSwapBuffers( window );
+	}
+
+	// Cleanup.
+	//TODO: additional cleanup
+    glBindVertexArray( 0 );
+    glUseProgram( 0 );
+    state.prog = nullptr;
+	
+	return 0;
+}
+catch( std::exception const& eErr )
+{
+	std::fprintf( stderr, "Top-level Exception (%s):\n", typeid(eErr).name() );
+	std::fprintf( stderr, "%s\n", eErr.what() );
+	std::fprintf( stderr, "Bye.\n" );
+	return 1;
+}
+
+// Helper functions
+namespace
+{
+	void initialisePointLights( State_& state ) {
+
+		Vec3f lightPos1 = Vec3f{ 2.9f,  0.3f, -4.75f };
+		Vec3f lightPos2 = Vec3f{ 2.7f,  0.3f, -5.f };
+		Vec3f lightPos3 = Vec3f{ 2.99f, 0.3f, -5.26f };
+
+		// Create lights
+		state.renderData.lights = {
+			Light {
+				lightPos1,  
+				Vec3f{0.8f, 0.8f, 0.8f},
+				Vec3f{0.5f, 0.5f, 0.5f},
+				Vec3f{0.3f, 0.3f, 0.3f},
+				lightPos1 - state.vehicleControl.origin		// Offset from the ship
+			},
+			Light {
+				lightPos2,
+				Vec3f{0.0f, 1.0f, 0.0f}, 
+				Vec3f{0.5f, 1.0f, 0.5f}, 
+				Vec3f{0.2f, 0.2f, 0.2f},  
+				lightPos2 - state.vehicleControl.origin
+			},
+			Light {
+				lightPos3,
+				Vec3f{0.0f, 0.0f, 1.0f}, 
+				Vec3f{0.5f, 0.5f, 0.5f}, 
+				Vec3f{0.2f, 0.2f, 0.3f},
+				lightPos3 - state.vehicleControl.origin
+			}
+		};
+	}
+	
+    void update_camera_pos( State_& state ) {
+        float speedModifier = state.camControl.moveFast ? 2.f : state.camControl.moveSlow ? 0.5f : 1.f;
+        float velocity = kMovementPerSecond_ * state.deltaTime * speedModifier;
+
+        // Forward / Backward
+        if (state.camControl.movingForward)
+            state.camControl.cameraPos += velocity * state.camControl.cameraFront;
+        if (state.camControl.movingBackward)
+            state.camControl.cameraPos -= velocity * state.camControl.cameraFront;
+
+        // Left / Right
+        if (state.camControl.strafingLeft)
+            // Use cross product to create the 'right vector' then move along that
+            state.camControl.cameraPos -= normalize(
+                cross(state.camControl.cameraFront, state.camControl.cameraUp)
+            ) * velocity;
+        if (state.camControl.strafingRight)
+            state.camControl.cameraPos += normalize(
+                cross(state.camControl.cameraFront, state.camControl.cameraUp)
+            ) * velocity;
+
+        // Up / Down
+        if (state.camControl.movingUp)
+            state.camControl.cameraPos.y -= velocity;
+        if (state.camControl.movingDown)
+            state.camControl.cameraPos.y += velocity;
+
+        // std::printf("%f, %f, %f\n", state.camControl.cameraPos.x, state.camControl.cameraPos.y, state.camControl.cameraPos.z);
+    }
+
+    void configureCamera( State_& state ) {
+        // Update each camera depending on mode
+        if (state.camControl.camView == FIXED_DISTANCE) {
+            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+        else if (state.camControl.camView == GROUND_POSITION) {
+            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+
+        if (state.camControl2.camView == FIXED_DISTANCE) {
+            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+        else if (state.camControl2.camView == GROUND_POSITION) {
+            state.camControl2.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
+        }
+
+        update_camera_pos( state );
+
+    }
+
+    void drawMesh(
+        GLuint vao, 
+        GLuint vertexCount, 
+        const Mat44f &projCameraWorld, 
+        const Mat33f &normalMatrix, 
+        State_ &state
+    ) {
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
+
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    }
+
+    void drawMeshes( State_ &state ) {
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
@@ -719,7 +683,7 @@ namespace
         Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
         Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
 
-        // === Drawing ===
+
         // Langerso mesh
         glUniformMatrix4fv(
             state.renderData.uModel2WorldLocation, 1,
@@ -753,6 +717,78 @@ namespace
 
         // Draw second launch pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
+
+    }
+
+    // Contains main rendering logic
+    void renderScene( State_ &state ) {
+
+        // === Drawing ===
+        if (!state.isSplitScreen) {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl.view;
+
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth / float(fbheight),                  // Aspect ratio
+                0.1f, 100.0f                                // Near / far 
+            );
+
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            drawMeshes( state );
+        } else {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl.view;
+
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth/2.f / float(fbheight),  // Aspect ratio
+                0.1f, 100.0f                // Near / far 
+            );
+
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            glViewport(0, 0, fbwidth/2, fbheight);
+
+            drawMeshes( state );
+
+            // === Right hand side === 
+            state.camControl2.view = look_at(
+                state.camControl2.cameraPos,
+                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl2.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl2.view;
+
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
+
+            drawMeshes( state );
+        }
 
 
 		// === UI ===
@@ -838,10 +874,14 @@ namespace
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C)
 			{
-				// Cycle through camera views
-				++state->camControl.camView;
-				state->camControl.camView %= 3;
-
+                // Cycle through camera views
+                if (aMod == GLFW_MOD_SHIFT) {
+                    ++state->camControl2.camView;
+                    state->camControl2.camView %= 3;
+                } else {
+                    ++state->camControl.camView;
+                    state->camControl.camView %= 3;
+                }
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
