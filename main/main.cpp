@@ -23,10 +23,9 @@
 
 
 
-
-#include <fontstash.h>
-#include <stb_truetype.h>
 #define FONTSTASH_IMPLEMENTATION
+#include <fontstash.h>
+#include "glfontstash.h"
 
 
 
@@ -389,63 +388,26 @@ int main() try
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
 
+	FONScontext* fs = NULL;
 
-	// // Global variables for FontStash
-	// FONScontext* fs; // FontStash context
-	// int fontNormal;  // ID for the loaded font
-	// GLuint fontTexture; // OpenGL texture for the font atlas
+	fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
+	if (fs == NULL) {
+		printf("Could not create stash.\n");
+		return -1;
+	}
+	
 
-	// // Create the font atlas texture
-	// glGenTextures(1, &fontTexture);
-	// glBindTexture(GL_TEXTURE_2D, fontTexture);
-	// glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	// glBindTexture(GL_TEXTURE_2D, 0);
-
-	// // Initialize FontStash
-	// FONSparams params = {};
-	// params.width = 512; // Font atlas width
-	// params.height = 512; // Font atlas height
-	// params.flags = FONS_ZERO_TOPLEFT;
-	// params.userPtr = &fontTexture;
-
-	// // Set the FontStash rendering backend functions
-	// params.renderCreate = NULL;
-	// params.renderResize = NULL;
-	// params.renderUpdate = [](void* uptr, int* rect, const unsigned char* data) {
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1], GL_ALPHA, GL_UNSIGNED_BYTE, data);
-	// };
-	// params.renderDraw = [](void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
-	// 	glEnable(GL_TEXTURE_2D);
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glEnable(GL_BLEND);
-	// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// 	glBegin(GL_TRIANGLES);
-	// 	for (int i = 0; i < nverts; i++) {
-	// 		glColor4ub((colors[i] >> 24) & 0xFF, (colors[i] >> 16) & 0xFF, (colors[i] >> 8) & 0xFF, colors[i] & 0xFF);
-	// 		glTexCoord2f(tcoords[i * 2], tcoords[i * 2 + 1]);
-	// 		glVertex2f(verts[i * 2], verts[i * 2 + 1]);
-	// 	}
-	// 	glEnd();
-	// };
-	// params.renderDelete = NULL;
-
-	// fs = fonsCreateInternal(&params);
-	// if (!fs) {
-	// 	fprintf(stderr, "Could not create FontStash context.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-	// // Load font
-	// fontNormal = fonsAddFont(fs, "sans", "DroidSerif-Regular.ttf");
+	// auto fontNormal = fonsAddFont(fs, "sans", "assets/cw2/DroidSansMonoDotted.ttf");
 	// if (fontNormal == FONS_INVALID) {
 	// 	fprintf(stderr, "Could not load font.\n");
 	// 	exit(EXIT_FAILURE);
 	// }
+
+
+	// const char* text = "Hello, OpenGL!";
+
+	// float nextX = fonsDrawText(fs, 0.f, 0.f, text, NULL); // Draw text and get the next X position
 
 
 
