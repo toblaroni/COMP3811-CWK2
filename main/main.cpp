@@ -391,8 +391,6 @@ int main() try
 		}
 	}
 
-
-
 	// Ensure the locations are valid
 	if (state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) || 
         state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
@@ -404,66 +402,7 @@ int main() try
 	}
 
 
-	// // Global variables for FontStash
-	// FONScontext* fs; // FontStash context
-	// int fontNormal;  // ID for the loaded font
-	// GLuint fontTexture; // OpenGL texture for the font atlas
-
-	// // Create the font atlas texture
-	// glGenTextures(1, &fontTexture);
-	// glBindTexture(GL_TEXTURE_2D, fontTexture);
-	// glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// glBindTexture(GL_TEXTURE_2D, 0);
-
-	// // Initialize FontStash
-	// FONSparams params = {};
-	// params.width = 512; // Font atlas width
-	// params.height = 512; // Font atlas height
-	// params.flags = FONS_ZERO_TOPLEFT;
-	// params.userPtr = &fontTexture;
-
-	// // Set the FontStash rendering backend functions
-	// params.renderCreate = NULL;
-	// params.renderResize = NULL;
-	// params.renderUpdate = [](void* uptr, int* rect, const unsigned char* data) {
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1], GL_ALPHA, GL_UNSIGNED_BYTE, data);
-	// };
-	// params.renderDraw = [](void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
-	// 	glEnable(GL_TEXTURE_2D);
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glEnable(GL_BLEND);
-	// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// 	glBegin(GL_TRIANGLES);
-	// 	for (int i = 0; i < nverts; i++) {
-	// 		glColor4ub((colors[i] >> 24) & 0xFF, (colors[i] >> 16) & 0xFF, (colors[i] >> 8) & 0xFF, colors[i] & 0xFF);
-	// 		glTexCoord2f(tcoords[i * 2], tcoords[i * 2 + 1]);
-	// 		glVertex2f(verts[i * 2], verts[i * 2 + 1]);
-	// 	}
-	// 	glEnd();
-	// };
-	// params.renderDelete = NULL;
-
-	// fs = fonsCreateInternal(&params);
-	// if (!fs) {
-	// 	fprintf(stderr, "Could not create FontStash context.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-	// // Load font
-	// fontNormal = fonsAddFont(fs, "sans", "DroidSerif-Regular.ttf");
-	// if (fontNormal == FONS_INVALID) {
-	// 	fprintf(stderr, "Could not load font.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-
-
-    // Initialise state
+    // Assign shader programs
     state.prog = &prog;
 	state.UI_prog = &UI_prog;
 
@@ -619,14 +558,15 @@ int main() try
 
         configureCamera( state );
 
-        if (!state.isSplitScreen) {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
+		state.camControl.view = look_at(
+			state.camControl.cameraPos,
+			state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+			state.camControl.cameraUp
+		);
 
-            state.renderData.world2camera = state.camControl.view;
+		state.renderData.world2camera = state.camControl.view;
+
+        if (!state.isSplitScreen) {
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -640,14 +580,8 @@ int main() try
             );
 
             renderScene( state );
-        } else {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
 
-            state.renderData.world2camera = state.camControl.view;
+        } else {
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -856,31 +790,24 @@ namespace
     }
 
     void configureCamera( State_& state ) {
-        // Update each camera depending on mode
-        if (state.camControl.camView == FIXED_DISTANCE) {
-            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl.camView == GROUND_POSITION) {
-            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
 
-        if (state.camControl2.camView == FIXED_DISTANCE) {
-            state.camControl2.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
-            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl2.camView == GROUND_POSITION) {
-            state.camControl2.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
-            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
-        }
+		auto cameras = { &state.camControl, &state.camControl2 }; // Store pointers to the cameras
+		
+		// Loop through each camera
+		for (auto* cam : cameras) {
+			if (cam->camView == FIXED_DISTANCE) {
+				cam->cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+				cam->cameraUp = { 0.f, 1.f, 0.f };
+			} 
+			else if (cam->camView == GROUND_POSITION) {
+				cam->cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+				cam->cameraUp = { 0.f, 1.f, 0.f };
+			}
+		}
 
         update_camera_pos( state );
-
     }
 
     void drawMesh(
@@ -1103,14 +1030,9 @@ namespace
 				for (auto& b : UI.buttons) {
 					// Convert corner1 and corner2 from NDC to screen space
 					float corner1X, corner2X, corner1Y, corner2Y;
-					if (!state->isSplitScreen){
-						corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
-						corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
-					}
-					else{
-						corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
-						corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
-					}
+
+					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
+					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
 
 					corner1Y = fbheight/2.f - (b.corner1.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
 					corner2Y = fbheight/2.f - (b.corner2.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
