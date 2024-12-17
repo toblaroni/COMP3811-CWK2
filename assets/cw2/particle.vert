@@ -18,5 +18,5 @@ void main() {
 
     v2fTexCoord = iTexCoord;
     v2fParticleColor = uColor;
-    gl_Position = projection * vec4(iPosition*scale + offset, 1.0);
+    gl_Position = uProjCameraWorld * vec4(iPosition*scale + uOffset, 1.0);
 }

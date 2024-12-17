@@ -415,7 +415,7 @@ int main() try
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
     // Init particle system
-    GLuint particleSpriteId = load_texture_2d("../assets/cwk2/particle.png");
+    GLuint particleSpriteId = load_texture_2d("assets/cw2/particle.png");
     state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 100 );
 
 	// Other initialization & loading
@@ -478,6 +478,8 @@ int main() try
         double currentTime = glfwGetTime();
         state.deltaTime = currentTime - last;
         last = currentTime;
+
+        state.particleSystem->update( 0.1f, state.vehicleControl.position, state.vehicleControl.velocity, 2);
 		
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
@@ -635,8 +637,10 @@ int main() try
             renderScene( state );
         }
 
-        // === Particles ===
-
+        state.particleSystem->draw( 
+            state.renderData.uProjCameraWorldLocation, 
+            state.renderData.projection 
+        );
 
 		// === UI ===
         glViewport( 0, 0, fbwidth, fbheight );

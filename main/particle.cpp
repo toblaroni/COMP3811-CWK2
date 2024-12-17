@@ -11,9 +11,8 @@ ParticleSystem::ParticleSystem( ShaderProgram& shader, GLuint textureId, unsigne
     this->init();
 }
 
-void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int newParticles ) 
+void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int numNewParticles ) 
 {
-    unsigned int numNewParticles = 2;
     for (unsigned int i = 0; i < numNewParticles; ++i) {
         int unusedParticle = this->firstUnusedParticle();
         this->respawnParticle( this->particles[unusedParticle], objPosition, objVelocity );
@@ -135,12 +134,13 @@ void ParticleSystem::draw( GLuint uProjCameraWorldLocation, Mat44f projCameraWor
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
     glUseProgram( this->shader.programId() );
 
+    glBindVertexArray(this->vao);
+    glBindTexture(GL_TEXTURE_2D, this->textureId);
+
     for (Particle particle : this->particles) {
         if (!particle.isDead()) {
-            glBindVertexArray(this->vao);
-            glBindTexture(GL_TEXTURE_2D, this->textureId);
             glUniform3fv( this->uOffsetLocation, 1, &particle.position.x );
-            glUniform3fv( this->uOffsetLocation, 1, &particle.color.x );
+            glUniform3fv( this->uColorLocation, 1, &particle.color.x );
             glUniformMatrix4fv(uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
             glDrawArrays( GL_TRIANGLES, 0, 6 );
         }

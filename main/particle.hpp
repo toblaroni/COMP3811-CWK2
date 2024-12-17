@@ -6,7 +6,6 @@
 #include "../vmlib/mat44.hpp"
 #include "../support/program.hpp"
 
-#include <GLFW/glfw3.h>
 
 /*
  *  === Particles ===
@@ -31,11 +30,11 @@ public:
     void draw( GLuint, Mat44f );
 private:
     ShaderProgram &shader;
-    std::vector<Particle> particles;
-    unsigned int lastUsedParticle;
-    unsigned int numParticles;
-    GLuint vao;
     GLuint textureId;
+    unsigned int numParticles;
+    unsigned int lastUsedParticle;
+    std::vector<Particle> particles;
+    GLuint vao;
 
     // Uniform locations
     GLuint uOffsetLocation; 
