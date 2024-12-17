@@ -6,6 +6,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
+
 
 #include "../support/error.hpp"
 #include "../support/program.hpp"
@@ -33,8 +35,6 @@
 #define NORMAL 0
 #define MOUSE_OVER 1
 #define PRESSED 2
-
-
 
 
 namespace
@@ -531,7 +531,118 @@ int main() try
 
         configureCamera( state );
 
-        renderScene(state);
+        if (!state.isSplitScreen) {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl.view;
+
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth / float(fbheight),                  // Aspect ratio
+                0.1f, 100.0f                                // Near / far 
+            );
+
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            renderScene( state );
+        } else {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl.view;
+
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth/2.f / float(fbheight),  // Aspect ratio
+                0.1f, 100.0f                // Near / far 
+            );
+
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            glViewport(0, 0, fbwidth/2, fbheight);
+
+            renderScene( state );
+
+            // === Right hand side === 
+            state.camControl2.view = look_at(
+                state.camControl2.cameraPos,
+                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl2.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl2.view;
+
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            GLenum error = glGetError();
+
+            if (error != GL_NO_ERROR)
+            {
+                std::cerr << "OpenGL Error: " << error << "\n";
+                exit(1);
+            }
+
+            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
+
+            renderScene( state );
+        }
+
+		// === UI ===
+        glUseProgram( state.UI_prog->programId() );
+		glDisable( GL_DEPTH_TEST );
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		
+		glBindVertexArray(state.renderData.UI_vao);
+
+		for (size_t i = 0; i < UI.buttons.size(); i++) {
+			if (UI.buttons[i].state == MOUSE_OVER) {
+				// If Hover over
+				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+			else if (UI.buttons[i].state == PRESSED) {
+				// If pressed
+				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+			else {
+				// keep same color
+				static float const baseColor[] = {1.f, 1.f, 1.f, 0.5f};
+				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+			}
+
+			glDrawArrays(GL_TRIANGLES, i*6, 6);
+		}
+
+
+		// Cleanup
+		glBindVertexArray( 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+
+		glDisable(GL_BLEND);
+
 
         OGL_CHECKPOINT_DEBUG();
 
@@ -662,7 +773,10 @@ namespace
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
     }
 
-    void drawMeshes( State_ &state ) {
+
+    // Contains main rendering logic
+    void renderScene( State_ &state ) {
+
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
@@ -683,6 +797,7 @@ namespace
         Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
         Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
 
+        // === Drawing ===
 
         // Langerso mesh
         glUniformMatrix4fv(
@@ -718,122 +833,7 @@ namespace
         // Draw second launch pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
 
-    }
 
-    // Contains main rendering logic
-    void renderScene( State_ &state ) {
-
-        // === Drawing ===
-        if (!state.isSplitScreen) {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl.view;
-
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth / float(fbheight),                  // Aspect ratio
-                0.1f, 100.0f                                // Near / far 
-            );
-
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
-
-            drawMeshes( state );
-        } else {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl.view;
-
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth/2.f / float(fbheight),  // Aspect ratio
-                0.1f, 100.0f                // Near / far 
-            );
-
-            // Set the view matrix
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
-
-            glViewport(0, 0, fbwidth/2, fbheight);
-
-            drawMeshes( state );
-
-            // === Right hand side === 
-            state.camControl2.view = look_at(
-                state.camControl2.cameraPos,
-                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl2.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl2.view;
-
-            // Set the view matrix
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
-
-            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
-
-            drawMeshes( state );
-        }
-
-
-		// === UI ===
-        glUseProgram( state.UI_prog->programId() );
-		glDisable( GL_DEPTH_TEST );
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		
-		glBindVertexArray(state.renderData.UI_vao);
-
-		for (size_t i = 0; i < UI.buttons.size(); i++) {
-			if (UI.buttons[i].state == MOUSE_OVER) {
-				// If Hover over
-				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
-				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
-			}
-			else if (UI.buttons[i].state == PRESSED) {
-				// If pressed
-				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
-				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
-			}
-			else {
-				// keep same color
-				static float const baseColor[] = {1.f, 1.f, 1.f, 0.5f};
-				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
-			}
-
-			glDrawArrays(GL_TRIANGLES, i*6, 6);
-		}
-
-
-
-        
-
-
-
-
-		// Cleanup
-		glBindVertexArray( 0 );
-		glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-
-		glDisable(GL_BLEND);
 
     }
 }
@@ -981,7 +981,9 @@ namespace
                 direction.x = cosYaw * cosPitch;
                 direction.y = -sinPitch;
                 direction.z = sinYaw * cosPitch;
+
                 state->camControl.cameraFront = normalize(direction);
+                state->camControl2.cameraFront = normalize(direction);
             }
 			else {
 
@@ -1023,6 +1025,7 @@ namespace
 
                 // Toggle camera control
                 state->camControl.cameraActive = !state->camControl.cameraActive;
+                state->camControl2.cameraActive = !state->camControl2.cameraActive;
 
                 // Hide / Show cursor
                 if (state->camControl.cameraActive)
