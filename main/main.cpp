@@ -694,6 +694,8 @@ int main() try
         }
 
 		// === UI ===
+        glViewport( 0, 0, fbwidth, fbheight );
+
         glUseProgram( state.UI_prog->programId() );
 		glDisable( GL_DEPTH_TEST );
 
@@ -1158,6 +1160,8 @@ namespace
 							state->vehicleControl.position = state->vehicleControl.origin;
 							state->vehicleControl.time = 0.f;
 							state->vehicleControl.theta = 0.f;
+
+                            initialisePointLights( *state );
 						}
 						
 					}
