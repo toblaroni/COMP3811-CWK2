@@ -69,19 +69,12 @@ namespace
          *  https://learnopengl.com/Getting-started/Camera
          * 
          *  The view matrix in this struct is our camera coordinate system.
+         *  This can be heavily refactored since both cameras share a lot of variables.
+         *  AKA Most of it should be global
          */
         struct CamCtrl_ {
-            bool cameraActive = false;
-            bool topDown = false;
 
             size_t camView = FREE_ROAM;
-
-            bool moveFast = false;
-            bool moveSlow = false;
-
-            bool strafingLeft = false, strafingRight = false;
-            bool movingForward = false, movingBackward = false;
-            bool movingUp = false, movingDown = false;
 
             float pitch = 0.f;  // Looking left / right
             float yaw = std::numbers::pi_v<float> / -2.f;      // Looking up / down
@@ -97,6 +90,26 @@ namespace
 
         CamCtrl_ camControl;
         CamCtrl_ camControl2;   // Second camera for split screen
+
+        struct FreeRoamCam {
+            bool cameraActive = false;
+
+            // These are all for the global 'free roam' camera
+            Vec3f cameraPos = { 0.f, 3.f, 3.f };
+            Vec3f cameraFront = { 0.f, 0.f, -1.f };
+            Vec3f cameraUp { 0.f, 1.f, 0.f };
+
+            bool moveFast = false;  
+            bool moveSlow = false;
+
+            bool strafingLeft = false, strafingRight = false;
+            bool movingForward = false, movingBackward = false;
+            bool movingUp = false, movingDown = false;
+
+            float pitch = 0.f;  // Looking left / right
+            float yaw = std::numbers::pi_v<float> / -2.f;      // Looking up / down
+        } freeRoamCtrls;
+        
 
         double deltaTime;    // This allows smooth camera movement
 
@@ -702,33 +715,48 @@ namespace
 	}
 	
     void update_camera_pos( State_& state ) {
-        float speedModifier = state.camControl.moveFast ? 2.f : state.camControl.moveSlow ? 0.5f : 1.f;
+        if ( state.camControl.camView != FREE_ROAM && state.camControl2.camView != FREE_ROAM )
+            return;
+
+        float speedModifier = state.freeRoamCtrls.moveFast ? 2.f : state.freeRoamCtrls.moveSlow ? 0.5f : 1.f;
         float velocity = kMovementPerSecond_ * state.deltaTime * speedModifier;
 
         // Forward / Backward
-        if (state.camControl.movingForward)
-            state.camControl.cameraPos += velocity * state.camControl.cameraFront;
-        if (state.camControl.movingBackward)
-            state.camControl.cameraPos -= velocity * state.camControl.cameraFront;
+        if (state.freeRoamCtrls.movingForward)
+            state.freeRoamCtrls.cameraPos += velocity * state.freeRoamCtrls.cameraFront;
+        if (state.freeRoamCtrls.movingBackward)
+            state.freeRoamCtrls.cameraPos -= velocity * state.freeRoamCtrls.cameraFront;
 
         // Left / Right
-        if (state.camControl.strafingLeft)
+        if (state.freeRoamCtrls.strafingLeft)
             // Use cross product to create the 'right vector' then move along that
-            state.camControl.cameraPos -= normalize(
-                cross(state.camControl.cameraFront, state.camControl.cameraUp)
+            state.freeRoamCtrls.cameraPos -= normalize(
+                cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
             ) * velocity;
-        if (state.camControl.strafingRight)
-            state.camControl.cameraPos += normalize(
-                cross(state.camControl.cameraFront, state.camControl.cameraUp)
+        if (state.freeRoamCtrls.strafingRight)
+            state.freeRoamCtrls.cameraPos += normalize(
+                cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
             ) * velocity;
 
         // Up / Down
-        if (state.camControl.movingUp)
-            state.camControl.cameraPos.y -= velocity;
-        if (state.camControl.movingDown)
-            state.camControl.cameraPos.y += velocity;
+        if (state.freeRoamCtrls.movingUp)
+            state.freeRoamCtrls.cameraPos.y -= velocity;
+        if (state.freeRoamCtrls.movingDown)
+            state.freeRoamCtrls.cameraPos.y += velocity;
 
-        // std::printf("%f, %f, %f\n", state.camControl.cameraPos.x, state.camControl.cameraPos.y, state.camControl.cameraPos.z);
+        // If update the camera to the free roam view
+        if (state.camControl.camView == FREE_ROAM) {
+            state.camControl.cameraPos = state.freeRoamCtrls.cameraPos;
+            state.camControl.cameraUp = state.freeRoamCtrls.cameraUp;
+            state.camControl.cameraFront = state.freeRoamCtrls.cameraFront;
+        }
+
+        if (state.camControl2.camView == FREE_ROAM) {
+            state.camControl2.cameraPos = state.freeRoamCtrls.cameraPos;
+            state.camControl2.cameraUp = state.freeRoamCtrls.cameraUp;
+            state.camControl2.cameraFront = state.freeRoamCtrls.cameraFront;
+        }
+        // std::printf("%f, %f, %f\n", state.freeRoamCtrls.cameraPos.x, state.freeRoamCtrls.cameraPos.y, state.freeRoamCtrls.cameraPos.z);
     }
 
     void configureCamera( State_& state ) {
@@ -745,13 +773,13 @@ namespace
         }
 
         if (state.camControl2.camView == FIXED_DISTANCE) {
-            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+            state.camControl2.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
+            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
         }
         else if (state.camControl2.camView == GROUND_POSITION) {
             state.camControl2.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
             state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
         }
 
@@ -857,21 +885,6 @@ namespace
 
         if (auto *state = static_cast<State_ *>(glfwGetWindowUserPointer(aWindow)))
         {
-            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_T) {
-                // REMOVE BEFORE SUBMISSION
-                // Press T to toggle topdown view
-                if (state->camControl.topDown) {
-                    state->camControl.cameraPos = { 0.f, 20.f, 0.f };
-                    state->camControl.cameraFront = { 0.f, -1.f, 0.f };
-                    state->camControl.cameraUp = { 0.f, 0.f, 1.f };
-                } else {
-                    state->camControl.cameraPos = { 0.f, 3.f, 3.f };
-                    state->camControl.cameraFront = { 0.f, 0.f, -1.f };
-                    state->camControl.cameraUp = { 0.f, 1.f, 0.f };  // Up vector in coordinate space.
-                }
-                state->camControl.topDown = !state->camControl.topDown;
-            }
-
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C)
 			{
                 // Cycle through camera views
@@ -908,31 +921,31 @@ namespace
                 // Move when pressed
                 switch (aKey) {
                     case GLFW_KEY_W:
-                        state->camControl.movingForward = isPressed; 
+                        state->freeRoamCtrls.movingForward = isPressed; 
                         break;
                     case GLFW_KEY_S:
-                        state->camControl.movingBackward = isPressed; 
+                        state->freeRoamCtrls.movingBackward = isPressed; 
                         break;
                     case GLFW_KEY_A:
-                        state->camControl.strafingLeft = isPressed; 
+                        state->freeRoamCtrls.strafingLeft = isPressed; 
                         break;
                     case GLFW_KEY_D:
-                        state->camControl.strafingRight = isPressed; 
+                        state->freeRoamCtrls.strafingRight = isPressed; 
                         break;
                     case GLFW_KEY_E:
-                        state->camControl.movingUp = isPressed; 
+                        state->freeRoamCtrls.movingUp = isPressed; 
                         break;
                     case GLFW_KEY_Q:
-                        state->camControl.movingDown = isPressed; 
+                        state->freeRoamCtrls.movingDown = isPressed; 
                         break;
                     // Not sure if it's better to use aMod for these?
                     case GLFW_KEY_LEFT_SHIFT:
                     case GLFW_KEY_RIGHT_SHIFT:
-                        state->camControl.moveFast = isPressed;
+                        state->freeRoamCtrls.moveFast = isPressed;
                         break;
                     case GLFW_KEY_LEFT_CONTROL: 
                     case GLFW_KEY_RIGHT_CONTROL:
-                        state->camControl.moveSlow = isPressed;
+                        state->freeRoamCtrls.moveSlow = isPressed;
                         break;
                 }
             }
@@ -952,38 +965,43 @@ namespace
              * 
              */
 
-            if (state->camControl.cameraActive) {
+            if (state->freeRoamCtrls.cameraActive && (state->camControl.camView == FREE_ROAM || state->camControl2.camView == FREE_ROAM)) {
                 float dx = (float)aMouseXPos - fbwidth/2.f;
                 float dy = (float)aMouseYPos - fbheight/2.f;
 
                 // Update pitch and yaw
                 // Multiplying by deltaTime ensures smooth camera movement independent of framerate
-                state->camControl.yaw += dx * kMouseSensitivity_ * (float)state->deltaTime;
-                state->camControl.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
+                state->freeRoamCtrls.yaw += dx * kMouseSensitivity_ * (float)state->deltaTime;
+                state->freeRoamCtrls.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
 
                 // Clamp pitch
                 const float maxPitch =  89.f * std::numbers::pi_v<float> / 180.f;
-                if (state->camControl.pitch > maxPitch)
-                    state->camControl.pitch = maxPitch;
-                else if (state->camControl.pitch < -maxPitch)
-                    state->camControl.pitch = -maxPitch;
+                if (state->freeRoamCtrls.pitch > maxPitch)
+                    state->freeRoamCtrls.pitch = maxPitch;
+                else if (state->freeRoamCtrls.pitch < -maxPitch)
+                    state->freeRoamCtrls.pitch = -maxPitch;
 
 
                 // This prevents the mouse moving off-screen
                 glfwSetCursorPos( aWindow, fbwidth/2.f, fbheight/2.f );
 
-                float cosYaw = std::cos(state->camControl.yaw);
-                float sinYaw = std::sin(state->camControl.yaw);
-                float cosPitch = std::cos(state->camControl.pitch);
-                float sinPitch = std::sin(state->camControl.pitch);
+                float cosYaw = std::cos(state->freeRoamCtrls.yaw);
+                float sinYaw = std::sin(state->freeRoamCtrls.yaw);
+                float cosPitch = std::cos(state->freeRoamCtrls.pitch);
+                float sinPitch = std::sin(state->freeRoamCtrls.pitch);
 
                 Vec3f direction = {};
                 direction.x = cosYaw * cosPitch;
                 direction.y = -sinPitch;
                 direction.z = sinYaw * cosPitch;
 
-                state->camControl.cameraFront = normalize(direction);
-                state->camControl2.cameraFront = normalize(direction);
+                state->freeRoamCtrls.cameraFront = normalize(direction);
+
+                // Update each camera accordingly
+                if (state->camControl.camView == FREE_ROAM)
+                    state->camControl.cameraFront = state->freeRoamCtrls.cameraFront;
+                if (state->camControl2.camView == FREE_ROAM)
+                    state->camControl2.cameraFront = state->freeRoamCtrls.cameraFront;
             }
 			else {
 
@@ -1024,11 +1042,10 @@ namespace
             if( GLFW_MOUSE_BUTTON_RIGHT == aButton && GLFW_PRESS == aAction ) {
 
                 // Toggle camera control
-                state->camControl.cameraActive = !state->camControl.cameraActive;
-                state->camControl2.cameraActive = !state->camControl2.cameraActive;
+                state->freeRoamCtrls.cameraActive = !state->freeRoamCtrls.cameraActive;
 
                 // Hide / Show cursor
-                if (state->camControl.cameraActive)
+                if (state->freeRoamCtrls.cameraActive)
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
                 else
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
