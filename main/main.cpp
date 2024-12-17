@@ -6,6 +6,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
+
 
 #include "../support/error.hpp"
 #include "../support/program.hpp"
@@ -44,8 +46,6 @@
 #define PRESSED 2
 
 
-
-
 namespace
 {
 	constexpr char const* kWindowTitle = "COMP3811 - CW2";
@@ -66,34 +66,25 @@ namespace
         Vec3f ambient;
 		Vec3f offset;		// This is lights offset from the ship
     };
- 
+
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
 		ShaderProgram* UI_prog;
         
         bool isSplitScreen = false;
-
-
         
         /*
          *  === Camera Controls ===
          *  https://learnopengl.com/Getting-started/Camera
          * 
          *  The view matrix in this struct is our camera coordinate system.
+         *  This can be heavily refactored since both cameras share a lot of variables.
+         *  AKA Most of it should be global
          */
         struct CamCtrl_ {
-            bool cameraActive = false;
-            bool topDown = false;
 
             size_t camView = FREE_ROAM;
-
-            bool moveFast = false;
-            bool moveSlow = false;
-
-            bool strafingLeft = false, strafingRight = false;
-            bool movingForward = false, movingBackward = false;
-            bool movingUp = false, movingDown = false;
 
             float pitch = 0.f;  // Looking left / right
             float yaw = std::numbers::pi_v<float> / -2.f;      // Looking up / down
@@ -105,7 +96,30 @@ namespace
             // This contains the coordinate space for the camera
             Mat44f view = {};
 
-        } camControl;
+        };
+
+        CamCtrl_ camControl;
+        CamCtrl_ camControl2;   // Second camera for split screen
+
+        struct FreeRoamCam {
+            bool cameraActive = false;
+
+            // These are all for the global 'free roam' camera
+            Vec3f cameraPos = { 0.f, 3.f, 3.f };
+            Vec3f cameraFront = { 0.f, 0.f, -1.f };
+            Vec3f cameraUp { 0.f, 1.f, 0.f };
+
+            bool moveFast = false;  
+            bool moveSlow = false;
+
+            bool strafingLeft = false, strafingRight = false;
+            bool movingForward = false, movingBackward = false;
+            bool movingUp = false, movingDown = false;
+
+            float pitch = 0.f;  // Looking left / right
+            float yaw = std::numbers::pi_v<float> / -2.f;      // Looking up / down
+        } freeRoamCtrls;
+        
 
         double deltaTime;    // This allows smooth camera movement
 
@@ -174,9 +188,11 @@ namespace
     void glfw_callback_motion_( GLFWwindow* aWindow, double aMouseXPos, double aMouseYPos );
     void glfw_callback_mouse_( GLFWwindow* aWindow, int aButton, int aAction, int aMods );
 
-    void update_camera_pos( State_* );
+    // Forward declarations
+    void update_camera_pos( State_& );
     void renderScene( State_& );
 	void initialisePointLights( State_& );
+    void configureCamera( State_& );
 
 	struct GLFWCleanupHelper
 	{
@@ -326,8 +342,6 @@ int main() try
 
 	UI.add_button("Launch", { -0.5f, -0.6f }, { -0.1f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
 	UI.add_button("Reset", { 0.1f, -0.6f }, { 0.5f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
-
-
 
 
     // FIX FOR 4.1
@@ -516,195 +530,13 @@ int main() try
         last = currentTime;
 		
 
-        if (state.camControl.camView == FIXED_DISTANCE) {
-            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl.camView == GROUND_POSITION) {
-            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-
-        // Update camera position
-        update_camera_pos( &state );
-
-		//TODO: update state
-
-        state.camControl.view = look_at(
-            state.camControl.cameraPos,
-            state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-            state.camControl.cameraUp
-        );
-
-        state.renderData.world2camera = state.camControl.view;
-
-        state.renderData.projection = make_perspective_projection(
-            60.f * std::numbers::pi_v<float> / 180.f,
-            fbwidth / float(fbheight),  // Aspect ratio
-            0.1f, 100.0f                // Near / far 
-        );
-
-
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(prog.programId());
 
-		//TODO: draw frame
-        if (!state.isSplitScreen) {
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth / float(fbheight),                  // Aspect ratio
-                0.1f, 100.0f                                // Near / far 
-            );
-
-
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
-
-            renderScene(state);
-        } else {
-            state.renderData.projection = make_perspective_projection(
-                60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth/2.f / float(fbheight),  // Aspect ratio
-                0.1f, 100.0f                // Near / far 
-            );
-
-            glViewport(0, 0, fbwidth/2, fbheight);
-
-            glUniformMatrix4fv(state.renderData.uViewMatrixLocation, 1,
-                                GL_TRUE, state.renderData.world2camera.v);
-
-            renderScene(state);
-
-            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
-
-            renderScene(state);
-        }
-
-
-
-		// glColor4ub(255, 255, 255, 255);
-		// fonsSetFont(fs, fontNormal);
-		// fonsSetSize(fs, 24.0f);
-		// fonsSetColor(fs, glfonsRGBA(255, 255, 255, 255));
-		// fonsDrawText(fs, 50, 50, "Hello, OpenGL with FontStash!", NULL);
-
-		// Swap buffers
-
-
-        OGL_CHECKPOINT_DEBUG();
-
-		// Display results
-		glfwSwapBuffers( window );
-	}
-
-	// Cleanup.
-	//TODO: additional cleanup
-    glBindVertexArray( 0 );
-    glUseProgram( 0 );
-    state.prog = nullptr;
-	
-	return 0;
-}
-catch( std::exception const& eErr )
-{
-	std::fprintf( stderr, "Top-level Exception (%s):\n", typeid(eErr).name() );
-	std::fprintf( stderr, "%s\n", eErr.what() );
-	std::fprintf( stderr, "Bye.\n" );
-	return 1;
-}
-
-// Helper functions
-namespace
-{
-	void initialisePointLights( State_& state ) {
-
-		Vec3f lightPos1 = Vec3f{ 2.9f,  0.3f, -4.75f };
-		Vec3f lightPos2 = Vec3f{ 2.7f,  0.3f, -5.f };
-		Vec3f lightPos3 = Vec3f{ 2.99f, 0.3f, -5.26f };
-
-		// Create lights
-		state.renderData.lights = {
-			Light {
-				lightPos1,  
-				Vec3f{1.0f, 1.0f, 1.0f},
-				Vec3f{1.5f, 1.5f, 1.5f},
-				Vec3f{0.3f, 0.3f, 0.3f},
-				lightPos1 - state.vehicleControl.origin		// Offset from the ship
-			},
-			Light {
-				lightPos2,
-				Vec3f{0.0f, 1.0f, 0.0f}, 
-				Vec3f{1.5f, 1.0f, 0.5f}, 
-				Vec3f{0.2f, 0.2f, 0.2f},  
-				lightPos2 - state.vehicleControl.origin
-			},
-			Light {
-				lightPos3,
-				Vec3f{0.0f, 0.0f, 1.0f}, 
-				Vec3f{1.5f, 0.5f, 1.5f}, 
-				Vec3f{0.2f, 0.2f, 0.3f},
-				lightPos3 - state.vehicleControl.origin
-			}
-		};
-	}
-	
-    void update_camera_pos( State_* state ) {
-        float speedModifier = state->camControl.moveFast ? 2.f : state->camControl.moveSlow ? 0.5f : 1.f;
-        float velocity = kMovementPerSecond_ * state->deltaTime * speedModifier;
-
-        // Forward / Backward
-        if (state->camControl.movingForward)
-            state->camControl.cameraPos += velocity * state->camControl.cameraFront;
-        if (state->camControl.movingBackward)
-            state->camControl.cameraPos -= velocity * state->camControl.cameraFront;
-
-        // Left / Right
-        if (state->camControl.strafingLeft)
-            // Use cross product to create the 'right vector' then move along that
-            state->camControl.cameraPos -= normalize(
-                cross(state->camControl.cameraFront, state->camControl.cameraUp)
-            ) * velocity;
-        if (state->camControl.strafingRight)
-            state->camControl.cameraPos += normalize(
-                cross(state->camControl.cameraFront, state->camControl.cameraUp)
-            ) * velocity;
-
-        // Up / Down
-        if (state->camControl.movingUp)
-            state->camControl.cameraPos.y -= velocity;
-        if (state->camControl.movingDown)
-            state->camControl.cameraPos.y += velocity;
-
-        // std::printf("%f, %f, %f\n", state->camControl.cameraPos.x, state->camControl.cameraPos.y, state->camControl.cameraPos.z);
-    }
-
-    void drawMesh(
-        GLuint vao, 
-        GLuint vertexCount, 
-        const Mat44f &projCameraWorld, 
-        const Mat33f &normalMatrix, 
-        State_ &state
-    ) {
-        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
-        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
-
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-    }
-
-    // Contains main rendering logic
-    void renderScene( State_ &state ) {
-
-		glUseProgram( state.prog->programId() );
 		glEnable( GL_DEPTH_TEST );
-
 
         // === Setup Lighting ===
         // Original directional lighting
@@ -777,7 +609,6 @@ namespace
 
 
         // Point lights
-		// Do we need to do this every frame?
         for (int i = 0; i < NUM_LIGHTS; ++i) {
             glUniform3fv( state.renderData.uLightPosLocations[i], 1, &state.renderData.lights[i].position.x );
             glUniform3fv( state.renderData.uLightDiffuseLocations[i], 1, &state.renderData.lights[i].diffuse.x );
@@ -785,61 +616,82 @@ namespace
             glUniform3fv( state.renderData.uSceneAmbientLocations[i], 1, &state.renderData.lights[i].ambient.x );
         }
 
-        // === Setting up models ===
-        // Langerso translations
-        Mat44f model2world = kIdentity44f;
-        Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
-        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
 
-        // Translations and projection for first launchpad
-        Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
-        Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+        configureCamera( state );
 
-        Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
-        Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+        if (!state.isSplitScreen) {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
 
-        // Combine translation and rotation
-        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
-        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
-        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
+            state.renderData.world2camera = state.camControl.view;
 
-        // === Drawing ===
-        // Langerso mesh
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2world.v
-        );
-        glUniform1i(state.renderData.uUseTextureLocation, GL_TRUE);
-        drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth / float(fbheight),                  // Aspect ratio
+                0.1f, 100.0f                                // Near / far 
+            );
 
-        // Draw Vehicle
-        glUniform1i(state.renderData.uUseTextureLocation, GL_FALSE);
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
 
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2worldVehicle.v
-        );
+            renderScene( state );
+        } else {
+            state.camControl.view = look_at(
+                state.camControl.cameraPos,
+                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl.cameraUp
+            );
 
-        drawMesh(state.renderData.vehicleVao, state.renderData.vehicleVertexCount, projCameraWorld_V, normalMatrix_V, state);
+            state.renderData.world2camera = state.camControl.view;
 
-        // Draw first launch pad
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2worldLaunchpad.v
-        );
+            state.renderData.projection = make_perspective_projection(
+                60.f * std::numbers::pi_v<float> / 180.f,
+                fbwidth/2.f / float(fbheight),  // Aspect ratio
+                0.1f, 100.0f                // Near / far 
+            );
 
-        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
 
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2worldLaunchpad2.v
-        );
+            glViewport(0, 0, fbwidth/2, fbheight);
 
-        // Draw second launch pad
-        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
+            renderScene( state );
 
+            // === Right hand side === 
+            state.camControl2.view = look_at(
+                state.camControl2.cameraPos,
+                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
+                state.camControl2.cameraUp
+            );
+
+            state.renderData.world2camera = state.camControl2.view;
+
+            // Set the view matrix
+            glUniformMatrix4fv(
+                state.renderData.uViewMatrixLocation, 1,
+                GL_TRUE, state.renderData.world2camera.v
+            );
+
+            GLenum error = glGetError();
+
+            if (error != GL_NO_ERROR)
+            {
+                std::cerr << "OpenGL Error: " << error << "\n";
+                exit(1);
+            }
+
+            glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
+
+            renderScene( state );
+        }
 
 		// === UI ===
         glUseProgram( state.UI_prog->programId() );
@@ -881,13 +733,6 @@ namespace
 		}
 
 
-
-
-
-
-
-
-
 		// Cleanup
 		glBindVertexArray( 0 );
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
@@ -895,6 +740,220 @@ namespace
 
 		glDisable(GL_BLEND);
 		glDisable( GL_PROGRAM_POINT_SIZE );
+
+
+		// glColor4ub(255, 255, 255, 255);
+		// fonsSetFont(fs, fontNormal);
+		// fonsSetSize(fs, 24.0f);
+		// fonsSetColor(fs, glfonsRGBA(255, 255, 255, 255));
+		// fonsDrawText(fs, 50, 50, "Hello, OpenGL with FontStash!", NULL);
+
+		// Swap buffers
+
+
+        OGL_CHECKPOINT_DEBUG();
+
+		// Display results
+		glfwSwapBuffers( window );
+	}
+
+	// Cleanup.
+	//TODO: additional cleanup
+    glBindVertexArray( 0 );
+    glUseProgram( 0 );
+    state.prog = nullptr;
+	
+	return 0;
+}
+catch( std::exception const& eErr )
+{
+	std::fprintf( stderr, "Top-level Exception (%s):\n", typeid(eErr).name() );
+	std::fprintf( stderr, "%s\n", eErr.what() );
+	std::fprintf( stderr, "Bye.\n" );
+	return 1;
+}
+
+// Helper functions
+namespace
+{
+	void initialisePointLights( State_& state ) {
+
+		Vec3f lightPos1 = Vec3f{ 2.9f,  0.3f, -4.75f };
+		Vec3f lightPos2 = Vec3f{ 2.7f,  0.3f, -5.f };
+		Vec3f lightPos3 = Vec3f{ 2.99f, 0.3f, -5.26f };
+
+		// Create lights
+		state.renderData.lights = {
+			Light {
+				lightPos1,  
+				Vec3f{0.8f, 0.8f, 0.8f},
+				Vec3f{0.5f, 0.5f, 0.5f},
+				Vec3f{0.3f, 0.3f, 0.3f},
+				lightPos1 - state.vehicleControl.origin		// Offset from the ship
+			},
+			Light {
+				lightPos2,
+				Vec3f{0.0f, 1.0f, 0.0f}, 
+				Vec3f{0.5f, 1.0f, 0.5f}, 
+				Vec3f{0.2f, 0.2f, 0.2f},  
+				lightPos2 - state.vehicleControl.origin
+			},
+			Light {
+				lightPos3,
+				Vec3f{0.0f, 0.0f, 1.0f}, 
+				Vec3f{0.5f, 0.5f, 0.5f}, 
+				Vec3f{0.2f, 0.2f, 0.3f},
+				lightPos3 - state.vehicleControl.origin
+			}
+		};
+	}
+	
+    void update_camera_pos( State_& state ) {
+        if ( state.camControl.camView != FREE_ROAM && state.camControl2.camView != FREE_ROAM )
+            return;
+
+        float speedModifier = state.freeRoamCtrls.moveFast ? 2.f : state.freeRoamCtrls.moveSlow ? 0.5f : 1.f;
+        float velocity = kMovementPerSecond_ * state.deltaTime * speedModifier;
+
+        // Forward / Backward
+        if (state.freeRoamCtrls.movingForward)
+            state.freeRoamCtrls.cameraPos += velocity * state.freeRoamCtrls.cameraFront;
+        if (state.freeRoamCtrls.movingBackward)
+            state.freeRoamCtrls.cameraPos -= velocity * state.freeRoamCtrls.cameraFront;
+
+        // Left / Right
+        if (state.freeRoamCtrls.strafingLeft)
+            // Use cross product to create the 'right vector' then move along that
+            state.freeRoamCtrls.cameraPos -= normalize(
+                cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
+            ) * velocity;
+        if (state.freeRoamCtrls.strafingRight)
+            state.freeRoamCtrls.cameraPos += normalize(
+                cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
+            ) * velocity;
+
+        // Up / Down
+        if (state.freeRoamCtrls.movingUp)
+            state.freeRoamCtrls.cameraPos.y -= velocity;
+        if (state.freeRoamCtrls.movingDown)
+            state.freeRoamCtrls.cameraPos.y += velocity;
+
+        // If update the camera to the free roam view
+        if (state.camControl.camView == FREE_ROAM) {
+            state.camControl.cameraPos = state.freeRoamCtrls.cameraPos;
+            state.camControl.cameraUp = state.freeRoamCtrls.cameraUp;
+            state.camControl.cameraFront = state.freeRoamCtrls.cameraFront;
+        }
+
+        if (state.camControl2.camView == FREE_ROAM) {
+            state.camControl2.cameraPos = state.freeRoamCtrls.cameraPos;
+            state.camControl2.cameraUp = state.freeRoamCtrls.cameraUp;
+            state.camControl2.cameraFront = state.freeRoamCtrls.cameraFront;
+        }
+        // std::printf("%f, %f, %f\n", state.freeRoamCtrls.cameraPos.x, state.freeRoamCtrls.cameraPos.y, state.freeRoamCtrls.cameraPos.z);
+    }
+
+    void configureCamera( State_& state ) {
+        // Update each camera depending on mode
+        if (state.camControl.camView == FIXED_DISTANCE) {
+            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+        else if (state.camControl.camView == GROUND_POSITION) {
+            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
+            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
+        }
+
+        if (state.camControl2.camView == FIXED_DISTANCE) {
+            state.camControl2.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
+            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
+        }
+        else if (state.camControl2.camView == GROUND_POSITION) {
+            state.camControl2.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
+            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
+        }
+
+        update_camera_pos( state );
+
+    }
+
+    void drawMesh(
+        GLuint vao, 
+        GLuint vertexCount, 
+        const Mat44f &projCameraWorld, 
+        const Mat33f &normalMatrix, 
+        State_ &state
+    ) {
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
+
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    }
+
+
+    // Contains main rendering logic
+    void renderScene( State_ &state ) {
+
+        // === Setting up models ===
+        // Langerso translations
+        Mat44f model2world = kIdentity44f;
+        Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
+        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
+
+        // Translations and projection for first launchpad
+        Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
+        Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+
+        Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
+        Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+
+        // Combine translation and rotation
+        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
+        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
+
+        // === Drawing ===
+
+        // Langerso mesh
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2world.v
+        );
+        glUniform1i(state.renderData.uUseTextureLocation, GL_TRUE);
+        drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
+
+        // Draw Vehicle
+        glUniform1i(state.renderData.uUseTextureLocation, GL_FALSE);
+
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2worldVehicle.v
+        );
+
+        drawMesh(state.renderData.vehicleVao, state.renderData.vehicleVertexCount, projCameraWorld_V, normalMatrix_V, state);
+
+        // Draw first launch pad
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2worldLaunchpad.v
+        );
+
+        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
+
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2worldLaunchpad2.v
+        );
+
+        // Draw second launch pad
+        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
 
     }
 }
@@ -918,26 +977,16 @@ namespace
 
         if (auto *state = static_cast<State_ *>(glfwGetWindowUserPointer(aWindow)))
         {
-            if (aAction == GLFW_PRESS && aKey == GLFW_KEY_T) {
-                // REMOVE BEFORE SUBMISSION
-                // Press T to toggle topdown view
-                if (state->camControl.topDown) {
-                    state->camControl.cameraPos = { 0.f, 20.f, 0.f };
-                    state->camControl.cameraFront = { 0.f, -1.f, 0.f };
-                    state->camControl.cameraUp = { 0.f, 0.f, 1.f };
-                } else {
-                    state->camControl.cameraPos = { 0.f, 3.f, 3.f };
-                    state->camControl.cameraFront = { 0.f, 0.f, -1.f };
-                    state->camControl.cameraUp = { 0.f, 1.f, 0.f };  // Up vector in coordinate space.
-                }
-                state->camControl.topDown = !state->camControl.topDown;
-            }
-
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_C)
 			{
-				// Cycle through camera views
-				state->camControl.camView = (state->camControl.camView + 1) % 3;
-
+                // Cycle through camera views
+                if (aMod == GLFW_MOD_SHIFT) {
+                    ++state->camControl2.camView;
+                    state->camControl2.camView %= 3;
+                } else {
+                    ++state->camControl.camView;
+                    state->camControl.camView %= 3;
+                }
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
@@ -964,31 +1013,31 @@ namespace
                 // Move when pressed
                 switch (aKey) {
                     case GLFW_KEY_W:
-                        state->camControl.movingForward = isPressed; 
+                        state->freeRoamCtrls.movingForward = isPressed; 
                         break;
                     case GLFW_KEY_S:
-                        state->camControl.movingBackward = isPressed; 
+                        state->freeRoamCtrls.movingBackward = isPressed; 
                         break;
                     case GLFW_KEY_A:
-                        state->camControl.strafingLeft = isPressed; 
+                        state->freeRoamCtrls.strafingLeft = isPressed; 
                         break;
                     case GLFW_KEY_D:
-                        state->camControl.strafingRight = isPressed; 
+                        state->freeRoamCtrls.strafingRight = isPressed; 
                         break;
                     case GLFW_KEY_E:
-                        state->camControl.movingUp = isPressed; 
+                        state->freeRoamCtrls.movingUp = isPressed; 
                         break;
                     case GLFW_KEY_Q:
-                        state->camControl.movingDown = isPressed; 
+                        state->freeRoamCtrls.movingDown = isPressed; 
                         break;
                     // Not sure if it's better to use aMod for these?
                     case GLFW_KEY_LEFT_SHIFT:
                     case GLFW_KEY_RIGHT_SHIFT:
-                        state->camControl.moveFast = isPressed;
+                        state->freeRoamCtrls.moveFast = isPressed;
                         break;
                     case GLFW_KEY_LEFT_CONTROL: 
                     case GLFW_KEY_RIGHT_CONTROL:
-                        state->camControl.moveSlow = isPressed;
+                        state->freeRoamCtrls.moveSlow = isPressed;
                         break;
                 }
             }
@@ -1008,36 +1057,43 @@ namespace
              * 
              */
 
-            if (state->camControl.cameraActive) {
+            if (state->freeRoamCtrls.cameraActive && (state->camControl.camView == FREE_ROAM || state->camControl2.camView == FREE_ROAM)) {
                 float dx = (float)aMouseXPos - fbwidth/2.f;
                 float dy = (float)aMouseYPos - fbheight/2.f;
 
                 // Update pitch and yaw
                 // Multiplying by deltaTime ensures smooth camera movement independent of framerate
-                state->camControl.yaw += dx * kMouseSensitivity_ * (float)state->deltaTime;
-                state->camControl.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
+                state->freeRoamCtrls.yaw += dx * kMouseSensitivity_ * (float)state->deltaTime;
+                state->freeRoamCtrls.pitch += dy * kMouseSensitivity_ * (float)state->deltaTime;
 
                 // Clamp pitch
                 const float maxPitch =  89.f * std::numbers::pi_v<float> / 180.f;
-                if (state->camControl.pitch > maxPitch)
-                    state->camControl.pitch = maxPitch;
-                else if (state->camControl.pitch < -maxPitch)
-                    state->camControl.pitch = -maxPitch;
+                if (state->freeRoamCtrls.pitch > maxPitch)
+                    state->freeRoamCtrls.pitch = maxPitch;
+                else if (state->freeRoamCtrls.pitch < -maxPitch)
+                    state->freeRoamCtrls.pitch = -maxPitch;
 
 
                 // This prevents the mouse moving off-screen
                 glfwSetCursorPos( aWindow, fbwidth/2.f, fbheight/2.f );
 
-                float cosYaw = std::cos(state->camControl.yaw);
-                float sinYaw = std::sin(state->camControl.yaw);
-                float cosPitch = std::cos(state->camControl.pitch);
-                float sinPitch = std::sin(state->camControl.pitch);
+                float cosYaw = std::cos(state->freeRoamCtrls.yaw);
+                float sinYaw = std::sin(state->freeRoamCtrls.yaw);
+                float cosPitch = std::cos(state->freeRoamCtrls.pitch);
+                float sinPitch = std::sin(state->freeRoamCtrls.pitch);
 
                 Vec3f direction = {};
                 direction.x = cosYaw * cosPitch;
                 direction.y = -sinPitch;
                 direction.z = sinYaw * cosPitch;
-                state->camControl.cameraFront = normalize(direction);
+
+                state->freeRoamCtrls.cameraFront = normalize(direction);
+
+                // Update each camera accordingly
+                if (state->camControl.camView == FREE_ROAM)
+                    state->camControl.cameraFront = state->freeRoamCtrls.cameraFront;
+                if (state->camControl2.camView == FREE_ROAM)
+                    state->camControl2.cameraFront = state->freeRoamCtrls.cameraFront;
             }
 			else {
 
@@ -1078,10 +1134,10 @@ namespace
             if( GLFW_MOUSE_BUTTON_RIGHT == aButton && GLFW_PRESS == aAction ) {
 
                 // Toggle camera control
-                state->camControl.cameraActive = !state->camControl.cameraActive;
+                state->freeRoamCtrls.cameraActive = !state->freeRoamCtrls.cameraActive;
 
                 // Hide / Show cursor
-                if (state->camControl.cameraActive)
+                if (state->freeRoamCtrls.cameraActive)
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
                 else
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
