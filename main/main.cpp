@@ -23,6 +23,15 @@
 #include "texture.hpp"
 #include "vehicle.hpp"
 
+
+
+
+#include <fontstash.h>
+#include <stb_truetype.h>
+#define FONTSTASH_IMPLEMENTATION
+
+
+
 #define NUM_LIGHTS 3
 
 
@@ -46,6 +55,7 @@ namespace
 
     int fbwidth = 0;
     int fbheight = 0;
+
 
 	UserInterface UI;
 
@@ -137,6 +147,8 @@ namespace
             GLuint uModel2WorldLocation;
 
 			GLuint uButtonActiveColorLocation;
+			GLuint uButtonOutlineLocation;
+
 
             // Matrices
             Mat44f world2camera;
@@ -193,6 +205,8 @@ namespace
 	};
 
 }
+
+
 
 int main() try
 {
@@ -341,7 +355,8 @@ int main() try
 	state.renderData.uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
 	state.renderData.uModel2WorldLocation     = glGetUniformLocation(prog.programId(), "uModel2World");
 
-	state.renderData.uButtonActiveColorLocation     = glGetUniformLocation(UI_prog.programId(), "uButtonActiveColor");
+	state.renderData.uButtonActiveColorLocation  = glGetUniformLocation(UI_prog.programId(), "uButtonActiveColor");
+	state.renderData.uButtonOutlineLocation  = glGetUniformLocation(UI_prog.programId(), "uButtonOutline");
 
     // Generate locations for lights
     for (int i = 0; i < NUM_LIGHTS; ++i) {
@@ -387,6 +402,65 @@ int main() try
         state.renderData.uUseTextureLocation == static_cast<GLuint>(-1)) {
 		std::fprintf(stderr, "Error: Uniform location not found\n");
 	}
+
+
+	// // Global variables for FontStash
+	// FONScontext* fs; // FontStash context
+	// int fontNormal;  // ID for the loaded font
+	// GLuint fontTexture; // OpenGL texture for the font atlas
+
+	// // Create the font atlas texture
+	// glGenTextures(1, &fontTexture);
+	// glBindTexture(GL_TEXTURE_2D, fontTexture);
+	// glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	// glBindTexture(GL_TEXTURE_2D, 0);
+
+	// // Initialize FontStash
+	// FONSparams params = {};
+	// params.width = 512; // Font atlas width
+	// params.height = 512; // Font atlas height
+	// params.flags = FONS_ZERO_TOPLEFT;
+	// params.userPtr = &fontTexture;
+
+	// // Set the FontStash rendering backend functions
+	// params.renderCreate = NULL;
+	// params.renderResize = NULL;
+	// params.renderUpdate = [](void* uptr, int* rect, const unsigned char* data) {
+	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
+	// 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1], GL_ALPHA, GL_UNSIGNED_BYTE, data);
+	// };
+	// params.renderDraw = [](void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
+	// 	glEnable(GL_TEXTURE_2D);
+	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
+	// 	glEnable(GL_BLEND);
+	// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// 	glBegin(GL_TRIANGLES);
+	// 	for (int i = 0; i < nverts; i++) {
+	// 		glColor4ub((colors[i] >> 24) & 0xFF, (colors[i] >> 16) & 0xFF, (colors[i] >> 8) & 0xFF, colors[i] & 0xFF);
+	// 		glTexCoord2f(tcoords[i * 2], tcoords[i * 2 + 1]);
+	// 		glVertex2f(verts[i * 2], verts[i * 2 + 1]);
+	// 	}
+	// 	glEnd();
+	// };
+	// params.renderDelete = NULL;
+
+	// fs = fonsCreateInternal(&params);
+	// if (!fs) {
+	// 	fprintf(stderr, "Could not create FontStash context.\n");
+	// 	exit(EXIT_FAILURE);
+	// }
+
+	// // Load font
+	// fontNormal = fonsAddFont(fs, "sans", "DroidSerif-Regular.ttf");
+	// if (fontNormal == FONS_INVALID) {
+	// 	fprintf(stderr, "Could not load font.\n");
+	// 	exit(EXIT_FAILURE);
+	// }
+
 
 
     // Initialise state
@@ -454,6 +528,7 @@ int main() try
         double currentTime = glfwGetTime();
         state.deltaTime = currentTime - last;
         last = currentTime;
+		
 
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
@@ -625,6 +700,8 @@ int main() try
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		glEnable( GL_PROGRAM_POINT_SIZE );
+
 		
 		glBindVertexArray(state.renderData.UI_vao);
 
@@ -636,7 +713,7 @@ int main() try
 			}
 			else if (UI.buttons[i].state == PRESSED) {
 				// If pressed
-				static float const baseColor[] = {1.f, 1.f, 1.f, 1.f};
+				static float const baseColor[] = {0.25f, 0.25f, 0.25f, 1.f};
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
 			else {
@@ -645,7 +722,14 @@ int main() try
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
 
-			glDrawArrays(GL_TRIANGLES, i*6, 6);
+			glDrawArrays(GL_TRIANGLES, i*30, 6);
+		}
+		
+		static float const baseColor[] = {0.f, 0.f, 0.f, 1.f};
+		glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
+
+		for (size_t i = 0; i < UI.buttons.size(); i++) {
+			glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
 		}
 
 
@@ -655,6 +739,16 @@ int main() try
 
 
 		glDisable(GL_BLEND);
+		glDisable( GL_PROGRAM_POINT_SIZE );
+
+
+		// glColor4ub(255, 255, 255, 255);
+		// fonsSetFont(fs, fontNormal);
+		// fonsSetSize(fs, 24.0f);
+		// fonsSetColor(fs, glfonsRGBA(255, 255, 255, 255));
+		// fonsDrawText(fs, 50, 50, "Hello, OpenGL with FontStash!", NULL);
+
+		// Swap buffers
 
 
         OGL_CHECKPOINT_DEBUG();
@@ -860,8 +954,6 @@ namespace
 
         // Draw second launch pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
-
-
 
     }
 }
