@@ -23,17 +23,12 @@
 #include "texture.hpp"
 #include "vehicle.hpp"
 
-
-
-
 #include <fontstash.h>
 #include <stb_truetype.h>
+
 #define FONTSTASH_IMPLEMENTATION
 
-
-
 #define NUM_LIGHTS 3
-
 
 // Camera Views
 #define FREE_ROAM 0
@@ -80,7 +75,9 @@ namespace
          * 
          *  The view matrix in this struct is our camera coordinate system.
          *  This can be heavily refactored since both cameras share a lot of variables.
-         *  AKA Most of it should be global
+         *  AKA Most of it should be global.
+         * 
+         *  TODO: ADD CAMERA STUFF TO IT"S OWN HEADER FILE
          */
         struct CamCtrl_ {
 
@@ -123,7 +120,6 @@ namespace
 
         double deltaTime;    // This allows smooth camera movement
 
-
         // This will hold all data required for rendering 
         struct RenderData_ {
             GLuint langersoVertexCount;
@@ -148,7 +144,6 @@ namespace
 
 			GLuint uButtonActiveColorLocation;
 			GLuint uButtonOutlineLocation;
-
 
             // Matrices
             Mat44f world2camera;
@@ -724,14 +719,14 @@ int main() try
 				glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 			}
 
-			glDrawArrays(GL_TRIANGLES, i*30, 6);
+			// glDrawArrays(GL_TRIANGLES, i*30, 6);
 		}
 		
 		static float const baseColor[] = {0.f, 0.f, 0.f, 1.f};
 		glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 
 		for (size_t i = 0; i < UI.buttons.size(); i++) {
-			glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
+			// glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
 		}
 
 
@@ -835,6 +830,7 @@ namespace
             ) * velocity;
 
         // Up / Down
+        // TODO - THIS ISN"T RELATIVE TO CAMERA ORIENTATION...
         if (state.freeRoamCtrls.movingUp)
             state.freeRoamCtrls.cameraPos.y -= velocity;
         if (state.freeRoamCtrls.movingDown)
