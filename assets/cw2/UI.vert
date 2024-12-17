@@ -4,7 +4,6 @@
 layout( location = 0 ) in vec2 iPosition;
 layout( location = 1 ) in vec4 iColor;
 
-
 out vec4 v2fColor;
 
 void main()
