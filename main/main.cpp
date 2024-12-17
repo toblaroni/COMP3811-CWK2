@@ -3,11 +3,9 @@
 
 #include <typeinfo>
 #include <format>
-
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-
 
 #include "../support/error.hpp"
 #include "../support/program.hpp"
@@ -22,6 +20,7 @@
 #include "loadobj.hpp"
 #include "texture.hpp"
 #include "vehicle.hpp"
+#include "particle.hpp"
 
 #include <fontstash.h>
 #include <stb_truetype.h>
@@ -51,7 +50,6 @@ namespace
     int fbwidth = 0;
     int fbheight = 0;
 
-
 	UserInterface UI;
 
     struct Light {
@@ -62,12 +60,28 @@ namespace
 		Vec3f offset;		// This is lights offset from the ship
     };
 
+
+    struct VehicleCtrl_ {
+        bool launch = false;
+        Vec3f origin = { 3.f, 0.f, -5.f };
+        Vec3f position = origin;
+
+        float time = 0.f;
+        float theta = 0.f;
+
+        // This is needed for particles
+        Vec3f velocity = { 0.f, 0.f, 0.f };
+    };
+
+
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
 		ShaderProgram* UI_prog;
         
         bool isSplitScreen = false;
+
+        ParticleSystem *particleSystem;
         
         /*
          *  === Camera Controls ===
@@ -165,16 +179,7 @@ namespace
 
         } renderData;
 
-
-        struct VehicleCtrl_ {
-            bool launch = false;
-            Vec3f origin = { 3.f, 0.f, -5.f };
-            Vec3f position = origin;
-
-            float time = 0.f;
-            float theta = 0.f;
-        } vehicleControl;
-
+        VehicleCtrl_ vehicleControl;
     };
 	
 	void glfw_callback_error_( int, char const* );
@@ -334,6 +339,12 @@ int main() try
 		{ GL_FRAGMENT_SHADER, "assets/cw2/UI.frag" }
 	} );
 
+    // Load particles shader program
+    ShaderProgram particle_prog( {
+		{ GL_VERTEX_SHADER, "assets/cw2/particle.vert" },
+		{ GL_FRAGMENT_SHADER, "assets/cw2/particle.frag" }
+    } );
+
 
 	UI.add_button("Launch", { -0.5f, -0.6f }, { -0.1f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
 	UI.add_button("Reset", { 0.1f, -0.6f }, { 0.5f, -1.f }, { 0.5f, 0.5f, 0.5f, 1.f });
@@ -386,8 +397,6 @@ int main() try
 		}
 	}
 
-
-
 	// Ensure the locations are valid
 	if (state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) || 
         state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
@@ -399,70 +408,15 @@ int main() try
 	}
 
 
-	// // Global variables for FontStash
-	// FONScontext* fs; // FontStash context
-	// int fontNormal;  // ID for the loaded font
-	// GLuint fontTexture; // OpenGL texture for the font atlas
-
-	// // Create the font atlas texture
-	// glGenTextures(1, &fontTexture);
-	// glBindTexture(GL_TEXTURE_2D, fontTexture);
-	// glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// glBindTexture(GL_TEXTURE_2D, 0);
-
-	// // Initialize FontStash
-	// FONSparams params = {};
-	// params.width = 512; // Font atlas width
-	// params.height = 512; // Font atlas height
-	// params.flags = FONS_ZERO_TOPLEFT;
-	// params.userPtr = &fontTexture;
-
-	// // Set the FontStash rendering backend functions
-	// params.renderCreate = NULL;
-	// params.renderResize = NULL;
-	// params.renderUpdate = [](void* uptr, int* rect, const unsigned char* data) {
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1], GL_ALPHA, GL_UNSIGNED_BYTE, data);
-	// };
-	// params.renderDraw = [](void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
-	// 	glEnable(GL_TEXTURE_2D);
-	// 	glBindTexture(GL_TEXTURE_2D, *(GLuint*)uptr);
-	// 	glEnable(GL_BLEND);
-	// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	// 	glBegin(GL_TRIANGLES);
-	// 	for (int i = 0; i < nverts; i++) {
-	// 		glColor4ub((colors[i] >> 24) & 0xFF, (colors[i] >> 16) & 0xFF, (colors[i] >> 8) & 0xFF, colors[i] & 0xFF);
-	// 		glTexCoord2f(tcoords[i * 2], tcoords[i * 2 + 1]);
-	// 		glVertex2f(verts[i * 2], verts[i * 2 + 1]);
-	// 	}
-	// 	glEnd();
-	// };
-	// params.renderDelete = NULL;
-
-	// fs = fonsCreateInternal(&params);
-	// if (!fs) {
-	// 	fprintf(stderr, "Could not create FontStash context.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-	// // Load font
-	// fontNormal = fonsAddFont(fs, "sans", "DroidSerif-Regular.ttf");
-	// if (fontNormal == FONS_INVALID) {
-	// 	fprintf(stderr, "Could not load font.\n");
-	// 	exit(EXIT_FAILURE);
-	// }
-
-
-
-    // Initialise state
-    state.prog = &prog;
-	state.UI_prog = &UI_prog;
+    // === Initialise state ===
+    state.prog          = &prog;
+	state.UI_prog       = &UI_prog;
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
+
+    // Init particle system
+    GLuint particleSpriteId = load_texture_2d("../assets/cwk2/particle.png");
+    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 100 );
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -520,11 +474,11 @@ int main() try
 		}
 
 		// Update state
+        // TODO: CREATE UPDATE FUNCTION?
         double currentTime = glfwGetTime();
         state.deltaTime = currentTime - last;
         last = currentTime;
 		
-
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
@@ -541,6 +495,7 @@ int main() try
         glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.5f, 0.5f, 0.0f );
         glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.1f, 0.1f, 0.1f );
 
+        // === Update Vehicle ===
         // Space vehicle translations
         if ( state.vehicleControl.launch ) {
                 
@@ -600,8 +555,8 @@ int main() try
 			// Compute rotation angle based on velocity vector
             state.vehicleControl.theta = std::atan2(velocityZ, velocityY);
             
+            state.vehicleControl.velocity = { 0.f, velocityY, velocityZ };
         }
-
 
         // Point lights
         for (int i = 0; i < NUM_LIGHTS; ++i) {
@@ -675,18 +630,13 @@ int main() try
                 GL_TRUE, state.renderData.world2camera.v
             );
 
-            GLenum error = glGetError();
-
-            if (error != GL_NO_ERROR)
-            {
-                std::cerr << "OpenGL Error: " << error << "\n";
-                exit(1);
-            }
-
             glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
 
             renderScene( state );
         }
+
+        // === Particles ===
+
 
 		// === UI ===
         glViewport( 0, 0, fbwidth, fbheight );
@@ -734,18 +684,8 @@ int main() try
 		glBindVertexArray( 0 );
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
-
 		glDisable(GL_BLEND);
 		glDisable( GL_PROGRAM_POINT_SIZE );
-
-
-		// glColor4ub(255, 255, 255, 255);
-		// fonsSetFont(fs, fontNormal);
-		// fonsSetSize(fs, 24.0f);
-		// fonsSetColor(fs, glfonsRGBA(255, 255, 255, 255));
-		// fonsDrawText(fs, 50, 50, "Hello, OpenGL with FontStash!", NULL);
-
-		// Swap buffers
 
 
         OGL_CHECKPOINT_DEBUG();
@@ -805,6 +745,7 @@ namespace
 		};
 	}
 	
+
     void update_camera_pos( State_& state ) {
         if ( state.camControl.camView != FREE_ROAM && state.camControl2.camView != FREE_ROAM )
             return;
@@ -878,6 +819,7 @@ namespace
         update_camera_pos( state );
 
     }
+
 
     void drawMesh(
         GLuint vao, 
