@@ -6,7 +6,7 @@
 #include "../vmlib/mat44.hpp"
 #include "../support/program.hpp"
 
-
+#include <algorithm>
 /*
  *  === Particles ===
  *  https://learnopengl.com/index.php?p=In-Practice/2D-Game/Particles
@@ -37,9 +37,15 @@ private:
     GLuint vao;
 
     // Uniform locations
-    GLuint uOffsetLocation; 
     GLuint uColorLocation;
     GLuint uProjCameraWorldLocation;
+
+    // Billboarding
+    // https://www.opengl-tutorial.org/intermediate-tutorials/billboards-particles/billboards/
+    GLuint uParticleCenterWorldspaceLocation;
+    GLuint uCameraRightWorldSpaceLocation;
+    GLuint uCameraUpWorldSpaceLocation;
+    GLuint uBillboardSizeLocation;
 
     void init();    // Initialises vao
     unsigned int firstUnusedParticle();

@@ -11,5 +11,9 @@ uniform sampler2D uSprite;
 out vec4 oColor;
 
 void main() {
-    oColor = (texture( uSprite, v2fTexCoord ) * v2fParticleColor);
+    vec4 texColor = texture(uSprite, v2fTexCoord);
+
+    if (texColor.a < 0.65) discard;
+
+    oColor = (texColor * v2fParticleColor);
 }

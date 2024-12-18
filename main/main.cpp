@@ -415,7 +415,7 @@ int main() try
 
     // Init particle system
     GLuint particleSpriteId = load_texture_2d("assets/cw2/particle.png");
-    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 100 );
+    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 20 );
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -478,13 +478,19 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
+        // state.particleSystem->update( 
+        //     state.deltaTime, 
+        //     state.vehicleControl.position,
+        //     state.vehicleControl.velocity,
+        //     2
+        // );
         state.particleSystem->update( 
             state.deltaTime, 
-            state.vehicleControl.position,
-            state.vehicleControl.velocity,
-            2
+            { 0.f, 3.f, 0.f },
+            { 0.f, 5.f, 0.f },
+            1
         );
-		
+
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
 
@@ -646,12 +652,14 @@ int main() try
             renderScene( state );
         }
 
-        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
-        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
-
         // Draw particles before spaceship.
-        state.particleSystem->draw( 
-            projCameraWorld_V,
+        // state.particleSystem->draw( 
+        //     projCameraWorld_V,
+        //     state.renderData.world2camera
+        // );
+
+        state.particleSystem->draw(
+            state.renderData.projection * state.renderData.world2camera,
             state.renderData.world2camera
         );
 
