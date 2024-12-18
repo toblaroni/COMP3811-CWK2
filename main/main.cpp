@@ -62,6 +62,7 @@ namespace
 
 
     struct VehicleCtrl_ {
+        bool hasLaunched = false;       // This lets us know if the ship has launched already (for particles)
         bool launch = false;
         Vec3f origin = { 3.f, 0.f, -5.f };
         Vec3f position = origin;
@@ -415,7 +416,7 @@ int main() try
 
     // Init particle system
     GLuint particleSpriteId = load_texture_2d("assets/cw2/particle.png");
-    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 20 );
+    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 30 );
 
 	// Other initialization & loading
 	OGL_CHECKPOINT_ALWAYS();
@@ -478,18 +479,14 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
-        // state.particleSystem->update( 
-        //     state.deltaTime, 
-        //     state.vehicleControl.position,
-        //     state.vehicleControl.velocity,
-        //     2
-        // );
-        state.particleSystem->update( 
-            state.deltaTime, 
-            { 0.f, 3.f, 0.f },
-            { 0.f, 5.f, 0.f },
-            1
-        );
+        if (state.vehicleControl.launch) {
+            state.particleSystem->update( 
+                state.deltaTime, 
+                state.vehicleControl.position,
+                state.vehicleControl.velocity,
+                2
+            );
+        }
 
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
@@ -652,16 +649,13 @@ int main() try
             renderScene( state );
         }
 
-        // Draw particles before spaceship.
-        // state.particleSystem->draw( 
-        //     projCameraWorld_V,
-        //     state.renderData.world2camera
-        // );
 
-        state.particleSystem->draw(
-            state.renderData.projection * state.renderData.world2camera,
-            state.renderData.world2camera
-        );
+        if (state.vehicleControl.hasLaunched) {
+            state.particleSystem->draw(
+                state.renderData.projection * state.renderData.world2camera,
+                state.renderData.world2camera
+            );
+        }
 
 		// === UI ===
         glViewport( 0, 0, fbwidth, fbheight );
@@ -959,9 +953,12 @@ namespace
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_F) {
                 state->vehicleControl.launch ^= true; 
+                if (!state->vehicleControl.hasLaunched)
+                    state->vehicleControl.hasLaunched = true;
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
+                state->vehicleControl.hasLaunched = false;
                 state->vehicleControl.launch = false;
                 state->vehicleControl.origin = { 3.f, 0.f, -5.f };
                 state->vehicleControl.position = state->vehicleControl.origin;
@@ -1118,9 +1115,11 @@ namespace
 						if (b.text == "Launch") {
 							// toggle the launch
 							state->vehicleControl.launch ^= true; 
+
 						}
 						else if (b.text == "Reset") {
 							state->vehicleControl.launch = false;
+                            state->vehicleControl.hasLaunched = false;
 							state->vehicleControl.origin = { 3.f, 0.f, -5.f };
 							state->vehicleControl.position = state->vehicleControl.origin;
 							state->vehicleControl.time = 0.f;

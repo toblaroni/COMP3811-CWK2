@@ -32,7 +32,7 @@ void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, uns
 
         if (p.isDead()) continue;
 
-        p.lifetime -= dt * 3.f;
+        p.lifetime -= dt * 4.f;
 
         if ( !p.isDead() ) {
             p.position += p.velocity * dt;     
@@ -74,12 +74,15 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.position = objPosition;
     particle.color = {rColor, rColor, rColor, 1.f};
     particle.lifetime = 1.f;
+    particle.size =  0.2f + ((rand() % 60) / 100.f); // Size varies between 0.2 and 0.8
 
-    float radius = 5.f;     // This changes the spread of the particles
+    float radius = 3.f;     // This changes the spread of the particles
 
     // Random velocity for the particle to shoot out in a random direction
     float randomVelocityFactor = 0.1f + ((rand() % 100) / 100.f);  // Random factor for velocity strength
-    particle.velocity = objVelocity + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
+
+    // Here we want minus velocity so that particles shoot the opposite way to the rocket.
+    particle.velocity = (objVelocity*-0.6f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
 }
 
 
@@ -178,6 +181,8 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
 
     // We need the camera's 'up' and 'right' vectors in world space
     // This is the same as the inverse of the view matrix
+    // NOTE: The x and y are flipped in the viewMatrix because we are in ROW MAJOR
+    //      NOTE2: Took me 12 hours to realise this...
     Vec3f cameraRightWorldSpace = normalize({ viewMatrix(0, 0), viewMatrix(0, 1), viewMatrix(0, 2) });
     Vec3f cameraUpWorldSpace    = normalize({ viewMatrix(1, 0), viewMatrix(1, 1), viewMatrix(1, 2) });
 
@@ -196,7 +201,7 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
                 particleCenterWorldSpace.z
             );
 
-            glUniform2f( this->uBillboardSizeLocation, 1.f, 1.f );
+            glUniform2f( this->uBillboardSizeLocation, particle.size, particle.size );
             glUniform4fv( this->uColorLocation, 1, &particle.color.x );
             glUniformMatrix4fv(this->uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
 
