@@ -27,10 +27,10 @@ public:
 
     // Add offset?
     void update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int newParticles );
-    void draw( GLuint, Mat44f );
+    void draw( Mat44f, Mat44f );
 private:
-    ShaderProgram &shader;
-    GLuint textureId;
+    const ShaderProgram &shader;
+    const GLuint textureId;
     unsigned int numParticles;
     unsigned int lastUsedParticle;
     std::vector<Particle> particles;
@@ -39,6 +39,7 @@ private:
     // Uniform locations
     GLuint uOffsetLocation; 
     GLuint uColorLocation;
+    GLuint uProjCameraWorldLocation;
 
     void init();    // Initialises vao
     unsigned int firstUnusedParticle();

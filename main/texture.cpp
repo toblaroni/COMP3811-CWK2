@@ -1,6 +1,7 @@
 #include "texture.hpp"
 
 #include <cassert>
+#include <iostream>
 
 #include <stb_image.h>
 
@@ -24,6 +25,7 @@ GLuint load_texture_2d( char const* aPath )
 
 	GLuint tex = 0;
 	glGenTextures( 1, &tex );
+
 	glBindTexture( GL_TEXTURE_2D, tex );
 
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, ptr );

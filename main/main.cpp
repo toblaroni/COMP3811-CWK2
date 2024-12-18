@@ -207,7 +207,6 @@ namespace
 }
 
 
-
 int main() try
 {
 	// Initialize GLFW
@@ -409,8 +408,8 @@ int main() try
 
 
     // === Initialise state ===
-    state.prog          = &prog;
-	state.UI_prog       = &UI_prog;
+    state.prog    = &prog;
+	state.UI_prog = &UI_prog;
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
@@ -479,10 +478,16 @@ int main() try
         state.deltaTime = currentTime - last;
         last = currentTime;
 
-        state.particleSystem->update( 0.1f, state.vehicleControl.position, state.vehicleControl.velocity, 2);
+        state.particleSystem->update( 
+            0.1f, 
+            state.vehicleControl.position,
+            state.vehicleControl.velocity,
+            2
+        );
 		
 		// Draw scene
 		OGL_CHECKPOINT_DEBUG();
+
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(prog.programId());
@@ -571,6 +576,8 @@ int main() try
 
         configureCamera( state );
 
+
+
         if (!state.isSplitScreen) {
             state.camControl.view = look_at(
                 state.camControl.cameraPos,
@@ -586,12 +593,14 @@ int main() try
                 0.1f, 100.0f                                // Near / far 
             );
 
+
             glUniformMatrix4fv(
                 state.renderData.uViewMatrixLocation, 1,
                 GL_TRUE, state.renderData.world2camera.v
             );
 
             renderScene( state );
+
         } else {
             state.camControl.view = look_at(
                 state.camControl.cameraPos,
@@ -637,9 +646,13 @@ int main() try
             renderScene( state );
         }
 
+        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
+        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
+
+        // Draw particles before spaceship.
         state.particleSystem->draw( 
-            state.renderData.uProjCameraWorldLocation, 
-            state.renderData.projection 
+            projCameraWorld_V,
+            state.renderData.world2camera
         );
 
 		// === UI ===
@@ -690,7 +703,6 @@ int main() try
 
 		glDisable(GL_BLEND);
 		glDisable( GL_PROGRAM_POINT_SIZE );
-
 
         OGL_CHECKPOINT_DEBUG();
 
@@ -842,7 +854,6 @@ namespace
 
     // Contains main rendering logic
     void renderScene( State_ &state ) {
-
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
@@ -870,7 +881,12 @@ namespace
             state.renderData.uModel2WorldLocation, 1,
             GL_TRUE, model2world.v
         );
+
         glUniform1i(state.renderData.uUseTextureLocation, GL_TRUE);
+
+        glActiveTexture( GL_TEXTURE0 );
+        glBindTexture( GL_TEXTURE_2D, state.renderData.textureObjectId );
+
         drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
 
         // Draw Vehicle

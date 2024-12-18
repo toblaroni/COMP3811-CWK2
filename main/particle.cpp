@@ -1,6 +1,7 @@
 // https://learnopengl.com/index.php?p=In-Practice/2D-Game/Particles
 
 #include "particle.hpp"
+#include <iostream>
 
 ParticleSystem::ParticleSystem( ShaderProgram& shader, GLuint textureId, unsigned int amount) 
     : shader(shader), 
@@ -34,6 +35,14 @@ void ParticleSystem::init() {
     // Generate the uniform locations
     this->uOffsetLocation = glGetUniformLocation( this->shader.programId(), "uOffset" );
     this->uColorLocation  = glGetUniformLocation( this->shader.programId(), "uColor" );
+    this->uProjCameraWorldLocation = glGetUniformLocation( this->shader.programId(), "uProjCameraWorld" );
+
+    if (this->uOffsetLocation == -1) 
+        std::fprintf(stderr, "Error: 'uOffsetLocation' not found");
+    if (this->uColorLocation == -1) 
+        std::fprintf(stderr, "Error: 'uColorLocation' not found");
+    if (this->uProjCameraWorldLocation == -1) 
+        std::fprintf(stderr, "Error: 'uProjCameraWorldLocation' not found");
 
     // Vertex position (CCW)
     float positions[] = {
@@ -125,28 +134,82 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.velocity = objVelocity * 0.1f;
 }
 
-void ParticleSystem::draw( GLuint uProjCameraWorldLocation, Mat44f projCameraWorld ) {
+// Create here as not used anywhere else
+Mat44f createBillboardRotationMatrix( const Vec3f& toCamera ) {
+    Vec3f right = normalize( cross( { 0.f, 1.f, 0.f }, toCamera ) );
+
+    Vec3f up = normalize( cross( toCamera, right ) );
+
+    // Construct the rotation matrix (camera-facing)
+    Mat44f rotation;
+
+    // Set the first row as the right vector
+    rotation(0, 0) = right.x;
+    rotation(0, 1) = right.y;
+    rotation(0, 2) = right.z;
+    rotation(0, 3) = 0.0f;  // The last element of the row is set to 0 for direction
+
+    // Set the second row as the up vector
+    rotation(1, 0) = up.x;
+    rotation(1, 1) = up.y;
+    rotation(1, 2) = up.z;
+    rotation(1, 3) = 0.0f;
+
+    // Set the third row as the camera-facing vector
+    rotation(2, 0) = toCamera.x;
+    rotation(2, 1) = toCamera.y;
+    rotation(2, 2) = toCamera.z;
+    rotation(2, 3) = 0.0f;
+
+    // The fourth row is the default for homogeneous coordinates (translation)
+    rotation(3, 0) = 0.0f;
+    rotation(3, 1) = 0.0f;
+    rotation(3, 2) = 0.0f;
+    rotation(3, 3) = 1.0f;  // Set the last element to 1 for homogeneous coordinates
+
+    return rotation;
+}
+
+void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     /*
      *  GL_ONE allows 'additive blending', which gives us the glow effect when 
      *  sprites are stacked on each other
      */
-
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
+
     glUseProgram( this->shader.programId() );
 
     glBindVertexArray(this->vao);
+
+    glActiveTexture( GL_TEXTURE0 );
     glBindTexture(GL_TEXTURE_2D, this->textureId);
+
+    Mat44f viewMatrixInverse = invert( viewMatrix );
 
     for (Particle particle : this->particles) {
         if (!particle.isDead()) {
-            glUniform3fv( this->uOffsetLocation, 1, &particle.position.x );
-            glUniform3fv( this->uColorLocation, 1, &particle.color.x );
-            glUniformMatrix4fv(uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+            // Billboarding
+            Vec4f particlePositionHomo = Vec4f { particle.position.x, particle.position.y, particle.position.z, 1.0f };
+            Vec4f transformedPosition = viewMatrixInverse * particlePositionHomo;
+            Vec3f particlePositionInCameraSpace = Vec3f { transformedPosition.x, transformedPosition.y, transformedPosition.z };
+
+            Mat44f rotationMatrix = createBillboardRotationMatrix( particlePositionInCameraSpace );
+            Mat44f modelMatrix = rotationMatrix * make_translation( particle.position );
+
+            // This may be expensive
+            glUniform3fv( this->uOffsetLocation, 1, modelMatrix.v );
+
+            glUniform4fv( this->uColorLocation, 1, &particle.color.x );
+
+            glUniformMatrix4fv(this->uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+
             glDrawArrays( GL_TRIANGLES, 0, 6 );
         }
     }
 
+    // Clean up
     glBindVertexArray( 0 );
+    glBindTexture(GL_TEXTURE_2D, 0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  // Reset blending
     glUseProgram( 0 );
 }

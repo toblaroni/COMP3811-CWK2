@@ -14,7 +14,7 @@ uniform vec3 uOffset;
 uniform vec4 uColor;
 
 void main() {
-    float scale = 10.0;     // Make this a uniform and change per pixel
+    float scale = 1.0;     // Make this a uniform and change per pixel
 
     v2fTexCoord = iTexCoord;
     v2fParticleColor = uColor;
