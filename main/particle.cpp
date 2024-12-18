@@ -172,35 +172,31 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
     glUseProgram( this->shader.programId() );
-
     glBindVertexArray(this->vao);
-
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture(GL_TEXTURE_2D, this->textureId);
 
     // We need the camera's 'up' and 'right' vectors in world space
     // This is the same as the inverse of the view matrix
-    Vec3f cameraRightWorldSpace = normalize({ viewMatrix(0, 0), viewMatrix(1, 0), viewMatrix(2, 0) });
-    Vec3f cameraUpWorldSpace    = normalize({ viewMatrix(0, 1), viewMatrix(1, 1), viewMatrix(2, 1) });
+    Vec3f cameraRightWorldSpace = normalize({ viewMatrix(0, 0), viewMatrix(0, 1), viewMatrix(0, 2) });
+    Vec3f cameraUpWorldSpace    = normalize({ viewMatrix(1, 0), viewMatrix(1, 1), viewMatrix(1, 2) });
 
     glUniform3fv( this->uCameraRightWorldSpaceLocation, 1, &cameraRightWorldSpace.x );
     glUniform3fv( this->uCameraUpWorldSpaceLocation, 1, &cameraUpWorldSpace.x );
 
-
     for (Particle particle : this->particles) {
         if (!particle.isDead()) {
             Mat44f model2worldParticle = make_translation(particle.position);
-
-            // This must be wrong
             Vec4f particleCenterWorldSpace = model2worldParticle * Vec4f{ 0.f, 0.f, 0.f, 1.f };
 
             glUniform3f( 
                 this->uParticleCenterWorldspaceLocation, 
-                particleCenterWorldSpace.x, particleCenterWorldSpace.y, particleCenterWorldSpace.z
+                particleCenterWorldSpace.x, 
+                particleCenterWorldSpace.y, 
+                particleCenterWorldSpace.z
             );
 
             glUniform2f( this->uBillboardSizeLocation, 1.f, 1.f );
-
             glUniform4fv( this->uColorLocation, 1, &particle.color.x );
             glUniformMatrix4fv(this->uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
 

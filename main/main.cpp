@@ -1100,13 +1100,12 @@ namespace
 		if ( auto* state = static_cast<State_*>(glfwGetWindowUserPointer( aWindow )) )
 		{
             if( GLFW_MOUSE_BUTTON_RIGHT == aButton && GLFW_PRESS == aAction ) {
-
                 // Toggle camera control
                 state->freeRoamCtrls.cameraActive = !state->freeRoamCtrls.cameraActive;
 
                 // Hide / Show cursor
                 if (state->freeRoamCtrls.cameraActive)
-                    glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                    glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                 else
                     glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
