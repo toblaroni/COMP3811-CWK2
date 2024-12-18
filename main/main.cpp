@@ -479,7 +479,7 @@ int main() try
         last = currentTime;
 
         state.particleSystem->update( 
-            0.1f, 
+            state.deltaTime, 
             state.vehicleControl.position,
             state.vehicleControl.velocity,
             2
