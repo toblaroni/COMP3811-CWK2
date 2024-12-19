@@ -141,4 +141,4 @@ TEST_CASE("4x4 matrix by Rotaion in Z", "[mat44]") {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
     }
-
+}

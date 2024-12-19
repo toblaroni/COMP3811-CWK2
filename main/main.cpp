@@ -507,7 +507,7 @@ int main() try
         Vec3f directLightDir = normalize( Vec3f{ 0.f, 1.f, -1.f } );
 
         glUniform3fv( state.renderData.uDirectLightDirLocation, 1, &directLightDir.x );
-        glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.5f, 0.5f, 0.0f );
+        glUniform3f( state.renderData.uDirectLightDiffuseLocation, 0.8f, 0.8f, 0.3f );
         glUniform3f( state.renderData.uDirectLightAmbientLocation, 0.1f, 0.1f, 0.1f );
 
         // === Update Vehicle ===
@@ -750,38 +750,45 @@ catch( std::exception const& eErr )
 // Helper functions
 namespace
 {
-    void initialisePointLights( State_& state ) {
 
-        Vec3f lightPos1 = Vec3f{ 2.9f,  0.3f, -4.75f };
-        Vec3f lightPos2 = Vec3f{ 2.7f,  0.3f, -5.f };
-        Vec3f lightPos3 = Vec3f{ 2.99f, 0.3f, -5.26f };
+    void initialisePointLights(State_& state) {
+        Vec3f origin = state.vehicleControl.origin;
 
-        // Create lights
+        // Evenly spaced positions around the ship
+        float radius = 0.5f; // Distance from the ship's origin
+        Vec3f lightPos1 = Vec3f{origin.x + radius, origin.y + 0.3f, origin.z};
+        Vec3f lightPos2 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z + radius * sqrt(3.f) / 2.f};
+        Vec3f lightPos3 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z - radius * sqrt(3.f) / 2.f};
+
+        // RGB colors for the lights
+        Vec3f red   = Vec3f{1.0f, 0.0f, 0.0f};
+        Vec3f green = Vec3f{0.0f, 1.0f, 0.0f};
+        Vec3f blue  = Vec3f{0.0f, 0.0f, 1.0f};
+
         state.renderData.lights = {
-            Light {
+            Light{
                 lightPos1,
-                Vec3f{0.8f, 0.8f, 0.8f},
-                Vec3f{0.5f, 0.5f, 0.5f},
-                Vec3f{0.3f, 0.3f, 0.3f},
-                lightPos1 - state.vehicleControl.origin		// Offset from the ship
+                red,                    // Ambient
+                red * 0.5f,             // Diffuse
+                red * 0.3f,             // Specular
+                lightPos1 - origin      // Offset from the ship
             },
-            Light {
+            Light{
                 lightPos2,
-                Vec3f{0.0f, 1.0f, 0.0f},
-                Vec3f{0.5f, 1.0f, 0.5f},
-                Vec3f{0.2f, 0.2f, 0.2f},
-                lightPos2 - state.vehicleControl.origin
+                green,              
+                green * 0.5f,       
+                green * 0.3f,       
+                lightPos2 - origin  
             },
-            Light {
+            Light{
                 lightPos3,
-                Vec3f{0.0f, 0.0f, 1.0f},
-                Vec3f{0.5f, 0.5f, 0.5f},
-                Vec3f{0.2f, 0.2f, 0.3f},
-                lightPos3 - state.vehicleControl.origin
+                blue,               
+                blue * 0.5f,        
+                blue * 0.3f,        
+                lightPos3 - origin  
             }
         };
     }
-
 
     void update_camera_pos( State_& state ) {
         if ( state.camControl.camView != FREE_ROAM && state.camControl2.camView != FREE_ROAM )
@@ -872,21 +879,25 @@ namespace
         // Langerso translations
         Mat44f model2world = kIdentity44f;
         Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
-        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
+        Mat44f modelView = state.renderData.world2camera * model2world;
+        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(modelView)));
 
         // Translations and projection for first launchpad
         Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
         Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+        Mat44f modelViewLaunchpad = state.renderData.world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(modelViewLaunchpad)));
 
         Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
         Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+        Mat44f modelViewLaunchpad2 = state.renderData.world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(modelViewLaunchpad2)));
 
         // Combine translation and rotation
         Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
         Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
-        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));
+        Mat44f modelViewVehicle = state.renderData.world2camera * model2worldVehicle;
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(modelViewVehicle)));    
 
         // === Drawing ===
 

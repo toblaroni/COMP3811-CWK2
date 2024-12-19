@@ -94,7 +94,7 @@ void main()
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         // TODO: REMOVE THIS FROM FRAGMENT SHADER
-        // THIS IS UNECESSARY AND SHOULD BE DONE ONCE BEFORE ON THE CPU
+        // THIS IS UNECESSARY AND SHOULD BE DONE ONCE BEFORE ON THE CPU!!!
         vec3 lightPosViewSpace = (uViewMatrix * vec4(uLightPos[i], 1.0)).xyz;   // Translate to view pos
 
         vec3 lightDir = normalize(lightPosViewSpace - v2fViewPos);
