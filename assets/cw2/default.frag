@@ -12,9 +12,8 @@ in float v2fShininess;
 in vec3 v2fEmissive;
 in float v2fIllum;
 
-in vec3 v2fViewPos;
+in vec3 v2fWorldPos;
 
-uniform mat4 uViewMatrix;
 uniform bool uUseTexture;
 
 // Directional light
@@ -28,6 +27,8 @@ uniform vec3 uLightPos[NUM_LIGHTS];
 uniform vec3 uLightDiffuse[NUM_LIGHTS];
 uniform vec3 uLightSpecular[NUM_LIGHTS];
 uniform vec3 uSceneAmbient[NUM_LIGHTS];
+
+uniform vec3 uWorldCameraPos;
 
 layout( location = 0 ) out vec3 oColor;
 
@@ -47,7 +48,7 @@ vec3 calcBlinnPhongLighting(
     
     
     // Calculate Blinn-Phong lighting
-    float lightDist = length(aLightPos - v2fViewPos);
+    float lightDist = length(aLightPos - v2fWorldPos);
     float falloff = 1.0 / (lightDist * lightDist);
 
     // return vec3(falloff);
@@ -90,17 +91,14 @@ void main()
     // === Point lights ===
     // Calculate view direction
     // This is direction from fragment to camera
-    vec3 viewDir = normalize(-v2fViewPos);
+    vec3 viewDir = normalize( uWorldCameraPos - v2fWorldPos );
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
-        // TODO: REMOVE THIS FROM FRAGMENT SHADER
-        // THIS IS UNECESSARY AND SHOULD BE DONE ONCE BEFORE ON THE CPU!!!
-        vec3 lightPosViewSpace = (uViewMatrix * vec4(uLightPos[i], 1.0)).xyz;   // Translate to view pos
 
-        vec3 lightDir = normalize(lightPosViewSpace - v2fViewPos);
+        vec3 lightDir = normalize(uLightPos[i] - v2fWorldPos);
         lighting += calcBlinnPhongLighting(
             normal, lightDir, viewDir,
-            lightPosViewSpace, uSceneAmbient[i],
+            uLightPos[i], uSceneAmbient[i],
             uLightDiffuse[i], uLightSpecular[i]
         );
     }

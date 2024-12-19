@@ -12,7 +12,6 @@ layout( location = 7 ) in vec3 iEmissive;
 layout( location = 8 ) in float iIllum;
 
 uniform mat4 uProjCameraWorld;
-uniform mat4 uViewMatrix;       // This is camera space
 uniform mat3 uNormalMatrix;
 uniform mat4 uModel2World;
 
@@ -27,7 +26,7 @@ out float v2fShininess;
 out vec3 v2fEmissive;
 out float v2fIllum;
 
-out vec3 v2fViewPos;    // Pass position in 'view' space
+out vec3 v2fWorldPos;    // Pass position in 'view' space
 
 void main()
 {
@@ -43,9 +42,9 @@ void main()
 
     v2fNormal = normalize(uNormalMatrix * iNormal);
 
-    // Transform the fragment position to view space
-    vec4 viewSpacePosition = uViewMatrix * uModel2World * vec4(iPosition, 1.0);
-    v2fViewPos = viewSpacePosition.xyz;
+    // Vertex position in world space
+    vec4 worldPosition = uModel2World * vec4(iPosition, 1.0);
+    v2fWorldPos = worldPosition.xyz;
 
     gl_Position = uProjCameraWorld * vec4( iPosition, 1.0 );
 }

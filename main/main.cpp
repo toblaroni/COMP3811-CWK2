@@ -160,7 +160,6 @@ namespace
             GLuint uProjCameraWorldLocation;
             GLuint uUseTextureLocation;
             GLuint uNormalMatrixLocation;
-            GLuint uViewMatrixLocation;
             GLuint uModel2WorldLocation;
 
             GLuint uButtonActiveColorLocation;
@@ -363,9 +362,10 @@ int main() try
 
     state.renderData.uProjCameraWorldLocation = glGetUniformLocation(prog.programId(), "uProjCameraWorld");
     state.renderData.uNormalMatrixLocation    = glGetUniformLocation(prog.programId(), "uNormalMatrix");
-    state.renderData.uViewMatrixLocation      = glGetUniformLocation(prog.programId(), "uViewMatrix");
     state.renderData.uUseTextureLocation      = glGetUniformLocation(prog.programId(), "uUseTexture");
     state.renderData.uModel2WorldLocation     = glGetUniformLocation(prog.programId(), "uModel2World");
+
+    GLuint uWorldCameraPosLocation = glGetUniformLocation(prog.programId(), "uWorldCameraPos");
 
     state.renderData.uButtonActiveColorLocation  = glGetUniformLocation(UI_prog.programId(), "uButtonActiveColor");
     state.renderData.uButtonOutlineLocation  = glGetUniformLocation(UI_prog.programId(), "uButtonOutline");
@@ -400,13 +400,14 @@ int main() try
     }
 
     // Ensure the locations are valid
-    if ( state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) ||
+    if ( 
+        state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) ||
          state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
-         state.renderData.uViewMatrixLocation == static_cast<GLuint>(-1)      ||
          state.renderData.uDirectLightDirLocation == static_cast<GLuint>(-1)  ||
          state.renderData.uModel2WorldLocation == static_cast<GLuint>(-1)     ||
-         state.renderData.uUseTextureLocation == static_cast<GLuint>(-1) ) 
-    {
+         uWorldCameraPosLocation == static_cast<GLuint>(-1)                   ||
+         state.renderData.uUseTextureLocation == static_cast<GLuint>(-1) 
+    ) {
         std::fprintf(stderr, "Error: Uniform location not found\n");
     }
 
@@ -593,7 +594,7 @@ int main() try
                 state.camControl.cameraUp
             );
 
-		        state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.view;
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -601,11 +602,7 @@ int main() try
                 0.1f, 100.0f                                // Near / far
             );
 
-
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
+            glUniform3fv( uWorldCameraPosLocation, 1, &state.camControl.cameraPos.x );
 
             renderScene( state );
 
@@ -616,18 +613,12 @@ int main() try
                 state.camControl.cameraUp
             );
 
-		        state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.view;
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
                 fbwidth/2.f / float(fbheight),  // Aspect ratio
                 0.1f, 100.0f                // Near / far
-            );
-
-            // Set the view matrix
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
             );
 
             glViewport(0, 0, fbwidth/2, fbheight);
@@ -642,12 +633,6 @@ int main() try
             );
 
             state.renderData.world2camera = state.camControl2.view;
-
-            // Set the view matrix
-            glUniformMatrix4fv(
-                state.renderData.uViewMatrixLocation, 1,
-                GL_TRUE, state.renderData.world2camera.v
-            );
 
             glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
 
