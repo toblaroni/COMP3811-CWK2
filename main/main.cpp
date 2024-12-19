@@ -582,7 +582,9 @@ int main() try
         configureCamera( state );
 
         if (!state.isSplitScreen) {
+
             glViewport(0, 0, fbwidth, fbheight);
+
             state.camControl.view = look_at(
                 state.camControl.cameraPos,
                 state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
@@ -710,7 +712,7 @@ int main() try
         glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 
         for (size_t i = 0; i < UI.buttons.size(); i++) {
-            // glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
+            glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
         }
 
 
@@ -781,34 +783,34 @@ namespace
 
     void update_camera_pos( State_& state ) {
         if ( state.camControl.camView != FREE_ROAM && state.camControl2.camView != FREE_ROAM )
-        return;
+        	return;
 
         float speedModifier = state.freeRoamCtrls.moveFast ? 2.f : state.freeRoamCtrls.moveSlow ? 0.5f : 1.f;
         float velocity = kMovementPerSecond_ * state.deltaTime * speedModifier;
 
         // Forward / Backward
         if (state.freeRoamCtrls.movingForward)
-        state.freeRoamCtrls.cameraPos += velocity * state.freeRoamCtrls.cameraFront;
+        	state.freeRoamCtrls.cameraPos += velocity * state.freeRoamCtrls.cameraFront;
         if (state.freeRoamCtrls.movingBackward)
-        state.freeRoamCtrls.cameraPos -= velocity * state.freeRoamCtrls.cameraFront;
+        	state.freeRoamCtrls.cameraPos -= velocity * state.freeRoamCtrls.cameraFront;
 
         // Left / Right
         if (state.freeRoamCtrls.strafingLeft)
-        // Use cross product to create the 'right vector' then move along that
-        state.freeRoamCtrls.cameraPos -= normalize(
-            cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
-        ) * velocity;
+			// Use cross product to create the 'right vector' then move along that
+			state.freeRoamCtrls.cameraPos -= normalize(
+				cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
+			) * velocity;
         if (state.freeRoamCtrls.strafingRight)
-        state.freeRoamCtrls.cameraPos += normalize(
-            cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
-        ) * velocity;
+			state.freeRoamCtrls.cameraPos += normalize(
+				cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp)
+			) * velocity;
 
         // Up / Down
         // TODO - THIS ISN"T RELATIVE TO CAMERA ORIENTATION...
         if (state.freeRoamCtrls.movingUp)
-        state.freeRoamCtrls.cameraPos.y -= velocity;
+        	state.freeRoamCtrls.cameraPos.y -= velocity;
         if (state.freeRoamCtrls.movingDown)
-        state.freeRoamCtrls.cameraPos.y += velocity;
+        	state.freeRoamCtrls.cameraPos.y += velocity;
 
         // If update the camera to the free roam view
         if (state.camControl.camView == FREE_ROAM) {
@@ -827,30 +829,23 @@ namespace
 
     void configureCamera( State_& state ) {
         // Update each camera depending on mode
-        if (state.camControl.camView == FIXED_DISTANCE) {
-            state.camControl.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl.camView == GROUND_POSITION) {
-            state.camControl.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl.cameraFront = normalize(state.vehicleControl.position - state.camControl.cameraPos);
-            state.camControl.cameraUp = { 0.f, 1.f, 0.f };
-        }
-
-        if (state.camControl2.camView == FIXED_DISTANCE) {
-            state.camControl2.cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
-            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
-        }
-        else if (state.camControl2.camView == GROUND_POSITION) {
-            state.camControl2.cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-            state.camControl2.cameraFront = normalize(state.vehicleControl.position - state.camControl2.cameraPos);
-            state.camControl2.cameraUp = { 0.f, 1.f, 0.f };
-        }
+		auto cameras = { &state.camControl, &state.camControl2 }; // Store pointers to the cameras
+		
+		// Loop through each camera
+		for (auto* cam : cameras) {
+			if (cam->camView == FIXED_DISTANCE) {
+				cam->cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+				cam->cameraUp = { 0.f, 1.f, 0.f };
+			} 
+			else if (cam->camView == GROUND_POSITION) {
+				cam->cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+				cam->cameraUp = { 0.f, 1.f, 0.f };
+			}
+		}
 
         update_camera_pos( state );
-
     }
 
 
@@ -946,6 +941,7 @@ namespace
 
     void glfw_callback_key_( GLFWwindow* aWindow, int aKey, int, int aAction, int aMod )
     {
+
         if( GLFW_KEY_ESCAPE == aKey && GLFW_PRESS == aAction )
         {
             glfwSetWindowShouldClose( aWindow, GLFW_TRUE );
@@ -1082,22 +1078,15 @@ namespace
             }
             else {
 
-                // NDC to screen coords, fbwidth = fnwidth / 2????,
                 for (auto& b : UI.buttons) {
                     // Convert corner1 and corner2 from NDC to screen space
                     float corner1X, corner2X, corner1Y, corner2Y;
-                    if (!state->isSplitScreen){
-                        corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
-                        corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
-                    }
-                    else{
-                        corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
-                        corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/4.f; // NDC to screen X
-                    }
 
-                    corner1Y = fbheight/2.f - (b.corner1.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
-                    corner2Y = fbheight/2.f - (b.corner2.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
+					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
+					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
 
+					corner1Y = fbheight/2.f - (b.corner1.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
+					corner2Y = fbheight/2.f - (b.corner2.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
 
                     // Check if the mouse position (screen space) is within the button boundaries
                     if (corner1X <= aMouseXPos && aMouseXPos <= corner2X &&
@@ -1122,9 +1111,9 @@ namespace
 
                 // Hide / Show cursor
                 if (state->freeRoamCtrls.cameraActive)
-                glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                	glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                 else
-                glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                	glfwSetInputMode(aWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
             if( GLFW_MOUSE_BUTTON_LEFT == aButton && GLFW_PRESS == aAction ) {
 
