@@ -38,11 +38,7 @@ void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, uns
         if ( !p.isDead() ) {
             p.position += p.velocity * dt;
             p.color.w = smoothstep(0.0f, 1.0f, p.lifetime);     // Fade out over the lifetime
-            float cameraDist = length( p.position - cameraPos );
-            p.cameraDistance = cameraDist * cameraDist;
-        } else {
-            p.cameraDistance = -1.f;
-        }
+        }  
     }
 
     this->sortParticles();
@@ -72,9 +68,11 @@ unsigned int ParticleSystem::firstUnusedParticle() {
 }
 
 void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec3f objVelocity ) {
-    float randomX = ((rand() % 100) - 50) / 100.f;  // Random between -0.5 and 0.5
+
+    float randomX = ((rand() % 100) - 50) / 100.f;  // Random between -0.3 and 0.3
     float randomY = ((rand() % 100) - 50) / 100.f;
     float randomZ = ((rand() % 100) - 50) / 100.f;
+
     float rColor = 0.5f + ((rand() % 100) / 100.f); // Separate into rgb?
 
     // particle.position = objPosition + Vec3f{randomX * radius, randomY * radius, randomZ * radius};
@@ -83,13 +81,11 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.lifetime = 1.f;
     particle.size =  0.2f + ((rand() % 30) / 100.f); // Size varies between 0.2 and 0.8
 
-    float radius = 3.f;     // This changes the spread of the particles
-
     // Random velocity for the particle to shoot out in a random direction
     float randomVelocityFactor = 0.1f + ((rand() % 100) / 100.f);  // Random factor for velocity strength
 
     // Here we want minus velocity so that particles shoot the opposite way to the rocket.
-    particle.velocity = (objVelocity*-1.5f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
+    particle.velocity = (objVelocity*-0.5f) + Vec3f{randomX, randomY, randomZ} * randomVelocityFactor;
 }
 
 void ParticleSystem::reset( Vec3f objPosition ) {
@@ -100,14 +96,20 @@ void ParticleSystem::reset( Vec3f objPosition ) {
 }
 
 // Re calculates distances from camera and sorts
-void ParticleSystem::orderParticles( Vec3f cameraPos ) {
+void ParticleSystem::orderParticles( Mat44f projCameraWorld ) {
     for (Particle& p : this->particles) {
-        if (p.isDead()) continue;
-        printf("\nOld cameraDist = %f\n", p.cameraDistance);
-        float cameraDist = length( p.position - cameraPos );
-        p.cameraDistance = cameraDist * cameraDist;
-        printf("New cameraDist = %f\n", p.cameraDistance);
-    }
+        if (p.isDead()) {
+            p.ndcDepth = -1;
+            continue;
+        }
+
+        // Use Clip space to order rather than world space
+        // https://chatgpt.com/
+        Vec4f clipSpacePos = projCameraWorld * Vec4f{ p.position.x, p.position.y, p.position.z, 1.f };
+
+        p.ndcDepth = clipSpacePos.z / clipSpacePos.w;     // NDC
+
+   }
 
     sortParticles();
 }
@@ -192,13 +194,12 @@ void ParticleSystem::init() {
         this->particles.push_back(Particle());
 }
 
-void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix, Vec3f cameraPos ) {
+void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     /*
      *  GL_ONE allows 'additive blending', which gives us the glow effect when
      *  sprites are stacked on each other
      */
-    orderParticles(cameraPos);
-
+    orderParticles( projCameraWorld );
     glEnable(GL_BLEND);
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 

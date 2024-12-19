@@ -655,22 +655,19 @@ int main() try
             if ( !state.isSplitScreen ) {
                 state.particleSystem->draw(
                     state.renderData.projection * state.renderData.world2camera,
-                    state.renderData.world2camera,
-                    state.camControl.cameraPos
+                    state.renderData.world2camera
                 );
             } else {
                 glViewport(0, 0, fbwidth/2, fbheight);
                 state.particleSystem->draw(
                     state.renderData.projection * state.camControl.getView(),
-                    state.camControl.getView(),
-                    state.camControl.cameraPos
+                    state.camControl.getView()
                 );
 
                 glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
                 state.particleSystem->draw(
                     state.renderData.projection * state.camControl2.getView(),
-                    state.camControl2.getView(),
-                    state.camControl2.cameraPos
+                    state.camControl2.getView()
                 );
             }
         }

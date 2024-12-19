@@ -18,12 +18,12 @@ struct Particle {
     Vec4f color    = { 1.f, 1.f, 1.f, 1.f };
     float lifetime = 0.f;
     float size     = 0.5f;
-    float cameraDistance;       // This is the squared distance to the camera.
+    float ndcDepth;       // This is the squared distance to the camera.
 
     bool isDead() { return lifetime <= 0.f; }
 
     bool operator<(const Particle& that) const {
-        return this->cameraDistance > that.cameraDistance;
+        return this->ndcDepth > that.ndcDepth;
     }
 };
 
@@ -33,7 +33,7 @@ public:
 
     // Add offset?
     void update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int newParticles, Vec3f cameraPos );
-    void draw( Mat44f, Mat44f, Vec3f );
+    void draw( Mat44f, Mat44f );
     void reset( Vec3f );
 private:
     const ShaderProgram &shader;
@@ -60,7 +60,7 @@ private:
     void sortParticles( ) {
         std::sort(this->particles.begin(), this->particles.end());
     };
-    void orderParticles( Vec3f cameraPos );
+    void orderParticles( Mat44f );
 };
 
 #endif  // PARTICLE_HPP
