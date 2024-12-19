@@ -487,9 +487,9 @@ int main() try
         if (state.vehicleControl.launch) {
             state.particleSystem->update(
                 state.deltaTime,
-                state.vehicleControl.position,
+                state.vehicleControl.position + Vec3f { 0.f, 0.1f, 0.f },
                 state.vehicleControl.velocity,
-                2,
+                5,
                 state.camControl.cameraPos
             );
         }

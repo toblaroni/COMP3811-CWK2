@@ -38,10 +38,12 @@ void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, uns
         if ( !p.isDead() ) {
             p.position += p.velocity * dt;
             p.color.w = smoothstep(0.0f, 1.0f, p.lifetime);     // Fade out over the lifetime
+
+            // Make the particle smaller over its lifetime
+            float progress = 1.0f - p.lifetime; // 0 at start, 1 at end
+            p.size = smoothstep(1.0f, 0.0f, progress) * p.initialSize; // Interpolated size
         }  
     }
-
-    this->sortParticles();
 }
 
 
@@ -68,8 +70,7 @@ unsigned int ParticleSystem::firstUnusedParticle() {
 }
 
 void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec3f objVelocity ) {
-
-    float randomX = ((rand() % 100) - 50) / 100.f;  // Random between -0.3 and 0.3
+    float randomX = ((rand() % 100) - 50) / 100.f;
     float randomY = ((rand() % 100) - 50) / 100.f;
     float randomZ = ((rand() % 100) - 50) / 100.f;
 
@@ -79,13 +80,16 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.position = objPosition;
     particle.color = {rColor, rColor, rColor, 1.f};
     particle.lifetime = 1.f;
-    particle.size =  0.2f + ((rand() % 30) / 100.f); // Size varies between 0.2 and 0.8
+    particle.initialSize =  0.1f + ((rand() % 30) / 100.f);
 
     // Random velocity for the particle to shoot out in a random direction
     float randomVelocityFactor = 0.1f + ((rand() % 100) / 100.f);  // Random factor for velocity strength
 
+    // Easily adjust the spread of the particles
+    float radius = 2.f;
+
     // Here we want minus velocity so that particles shoot the opposite way to the rocket.
-    particle.velocity = (objVelocity*-0.5f) + Vec3f{randomX, randomY, randomZ} * randomVelocityFactor;
+    particle.velocity = (objVelocity*-0.5f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
 }
 
 void ParticleSystem::reset( Vec3f objPosition ) {

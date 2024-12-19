@@ -17,6 +17,7 @@ struct Particle {
     Vec3f position = { 0.f, 0.f, 0.f };
     Vec4f color    = { 1.f, 1.f, 1.f, 1.f };
     float lifetime = 0.f;
+    float initialSize = 0.5f;
     float size     = 0.5f;
     float ndcDepth;       // This is the squared distance to the camera.
 
