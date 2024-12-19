@@ -1,6 +1,7 @@
 #include <catch2/catch_amalgamated.hpp>
 
 #include <numbers>
+
 #include "../vmlib/mat44.hpp"
 
 using namespace Catch::Matchers;
@@ -11,6 +12,7 @@ using namespace Catch::Matchers;
 // NEED TO LOOK INTO IF CATCH2 HAS A RANDOM NUMBER GENERATOR
 
 // Mat44 x Rotation in X
+
 TEST_CASE("4x4 matrix by Rotaion in X", "[mat44]") {
 
     SECTION( "Mat44f x make_rotation_x(0) == Mat44f" ) {
@@ -24,6 +26,7 @@ TEST_CASE("4x4 matrix by Rotaion in X", "[mat44]") {
         Mat44f result = m * make_rotation_x(0);
 
         const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -56,6 +59,7 @@ TEST_CASE("4x4 matrix by Rotaion in X", "[mat44]") {
         Mat44f result = m * make_rotation_x(2* std::numbers::pi_v<float>);
 
         const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -63,6 +67,7 @@ TEST_CASE("4x4 matrix by Rotaion in X", "[mat44]") {
 }
 
 // Mat44 x Rotation in Y
+
 TEST_CASE("4x4 matrix by Rotaion in Y", "[mat44]") {
 
     SECTION( "Mat44f x make_rotation_y(0) == Mat44f" ) {
@@ -76,6 +81,7 @@ TEST_CASE("4x4 matrix by Rotaion in Y", "[mat44]") {
         Mat44f result = m * make_rotation_y(0);
 
         const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -93,6 +99,7 @@ TEST_CASE("4x4 matrix by Rotaion in Y", "[mat44]") {
 
         // DONT KNOW WHY THIS TOLERANCE DOESNT WORK?????
         const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -134,4 +141,4 @@ TEST_CASE("4x4 matrix by Rotaion in Z", "[mat44]") {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
     }
-}
+

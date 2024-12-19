@@ -400,19 +400,21 @@ int main() try
     }
 
     // Ensure the locations are valid
-    if (state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) ||
-        state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
-        state.renderData.uViewMatrixLocation == static_cast<GLuint>(-1)      ||
-        state.renderData.uDirectLightDirLocation == static_cast<GLuint>(-1)  ||
-        state.renderData.uModel2WorldLocation == static_cast<GLuint>(-1)     ||
-        state.renderData.uUseTextureLocation == static_cast<GLuint>(-1)) {
-            std::fprintf(stderr, "Error: Uniform location not found\n");
+    if ( state.renderData.uProjCameraWorldLocation == static_cast<GLuint>(-1) ||
+         state.renderData.uNormalMatrixLocation == static_cast<GLuint>(-1)    ||
+         state.renderData.uViewMatrixLocation == static_cast<GLuint>(-1)      ||
+         state.renderData.uDirectLightDirLocation == static_cast<GLuint>(-1)  ||
+         state.renderData.uModel2WorldLocation == static_cast<GLuint>(-1)     ||
+         state.renderData.uUseTextureLocation == static_cast<GLuint>(-1) ) 
+    {
+        std::fprintf(stderr, "Error: Uniform location not found\n");
     }
 
 
-    // === Initialise state ===
-    state.prog    = &prog;
-    state.UI_prog = &UI_prog;
+
+    // Assign shader programs
+    state.prog = &prog;
+	  state.UI_prog = &UI_prog;
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
@@ -591,7 +593,7 @@ int main() try
                 state.camControl.cameraUp
             );
 
-            state.renderData.world2camera = state.camControl.view;
+		        state.renderData.world2camera = state.camControl.view;
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -614,7 +616,7 @@ int main() try
                 state.camControl.cameraUp
             );
 
-            state.renderData.world2camera = state.camControl.view;
+		        state.renderData.world2camera = state.camControl.view;
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -828,24 +830,24 @@ namespace
     }
 
     void configureCamera( State_& state ) {
-        // Update each camera depending on mode
-		auto cameras = { &state.camControl, &state.camControl2 }; // Store pointers to the cameras
-		
-		// Loop through each camera
-		for (auto* cam : cameras) {
-			if (cam->camView == FIXED_DISTANCE) {
-				cam->cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
-				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
-				cam->cameraUp = { 0.f, 1.f, 0.f };
-			} 
-			else if (cam->camView == GROUND_POSITION) {
-				cam->cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
-				cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
-				cam->cameraUp = { 0.f, 1.f, 0.f };
-			}
-		}
 
-        update_camera_pos( state );
+		    auto cameras = { &state.camControl, &state.camControl2 }; // Store pointers to the cameras
+		
+        // Loop through each camera
+        for (auto* cam : cameras) {
+          if (cam->camView == FIXED_DISTANCE) {
+            cam->cameraPos = state.vehicleControl.position + Vec3f{ 1.f, 3.f, -3.f };
+            cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+            cam->cameraUp = { 0.f, 1.f, 0.f };
+          } 
+          else if (cam->camView == GROUND_POSITION) {
+            cam->cameraPos = Vec3f{ 0.f, 0.5f, 0.f };
+            cam->cameraFront = normalize(state.vehicleControl.position - cam->cameraPos);
+            cam->cameraUp = { 0.f, 1.f, 0.f };
+          }
+        }
+
+            update_camera_pos( state );
     }
 
 
@@ -1076,11 +1078,14 @@ namespace
                     state->camControl2.cameraFront = state->freeRoamCtrls.cameraFront;
 
             }
-            else {
 
-                for (auto& b : UI.buttons) {
-                    // Convert corner1 and corner2 from NDC to screen space
-                    float corner1X, corner2X, corner1Y, corner2Y;
+			else {
+
+				// NDC to screen coords, fbwidth = fnwidth / 2????, 
+				for (auto& b : UI.buttons) {
+					// Convert corner1 and corner2 from NDC to screen space
+					float corner1X, corner2X, corner1Y, corner2Y;
+
 
 					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
 					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X

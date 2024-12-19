@@ -7,8 +7,8 @@ using namespace Catch::Matchers;
 // Mat44 x Mat44 multiplication
 TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
-    SECTION( "Mat44f-L x Mat44f-R == Known Result" ) 
-    {
+
+    SECTION( "Mat44f-L x Mat44f-R == Known Result" ) {
         Mat44f aLeft = {
             1.0f, 2.0f, 3.0f, 4.0f,
             5.0f, 6.0f, 7.0f, 8.0f,
@@ -65,7 +65,7 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 			 9.f, 10.f, 11.f, 12.f,
 			13.f, 14.f, 15.f, 16.f
 		} };
-        
+
 		Mat44f result = kIdentity44f * m;
 
 		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
@@ -157,12 +157,14 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
             9.0f, 10.0f, 11.0f, 12.0f,
             13.0f, 14.0f, 15.0f, 16.0f
         };
+
         Mat44f aTwo = {
             17.0f, 18.0f, 19.0f, 20.0f,
             21.0f, 22.0f, 23.0f, 24.0f,
             25.0f, 26.0f, 27.0f, 28.0f,
             29.0f, 30.0f, 31.0f, 32.0f
         };
+
         Mat44f aThree = {
             33.0f, 34.0f, 35.0f, 36.0f,
             37.0f, 38.0f, 39.0f, 40.0f,
@@ -170,8 +172,12 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
             45.0f, 46.0f, 47.0f, 48.0f
         };
 
-        Mat44f aOneTwo_Three = (aOne * aTwo) * aThree;
-        Mat44f aOne_TwoThree = aOne * (aTwo * aThree);
+
+		Mat44f aOneTwo = aOne * aTwo;
+        Mat44f aTwoThree = aTwo * aThree;
+
+        Mat44f aOneTwo_Three = aOneTwo * aThree;
+        Mat44f aOne_TwoThree = aOne * aTwoThree;
 
 		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
@@ -183,6 +189,7 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 // Mat44 x Vec4 multiplication
 TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
+
     SECTION("Simple Mat44f x Vec4f Test") {
         Mat44f matrix = {
             1.0f, 2.0f, 3.0f, 4.0f,
@@ -234,7 +241,7 @@ TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
 			 0.f,  0.f,  0.f,  0.f,
 			 0.f,  0.f,  0.f,  0.f,
 		} };
-        
+
         Vec4f vector = { 
 			1.0f, 2.0f, 3.0f, 4.0f
 		};
