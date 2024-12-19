@@ -1,10 +1,11 @@
 // https://learnopengl.com/index.php?p=In-Practice/2D-Game/Particles
 
 #include "particle.hpp"
+#include <cstdio>
 
-ParticleSystem::ParticleSystem( ShaderProgram& shader, GLuint textureId, unsigned int amount) 
-    : shader(shader), 
-      textureId(textureId), 
+ParticleSystem::ParticleSystem( ShaderProgram& shader, GLuint textureId, unsigned int amount)
+    : shader(shader),
+      textureId(textureId),
       numParticles(amount),
       lastUsedParticle(0)
 {
@@ -18,7 +19,7 @@ float smoothstep(float edge0, float edge1, float x) {
 }
 
 
-void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int numNewParticles ) 
+void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int numNewParticles, Vec3f cameraPos )
 {
 
     for (unsigned int i = 0; i < numNewParticles; ++i) {
@@ -35,10 +36,16 @@ void ParticleSystem::update( float dt, Vec3f objPosition, Vec3f objVelocity, uns
         p.lifetime -= dt * 4.f;
 
         if ( !p.isDead() ) {
-            p.position += p.velocity * dt;     
+            p.position += p.velocity * dt;
             p.color.w = smoothstep(0.0f, 1.0f, p.lifetime);     // Fade out over the lifetime
+            float cameraDist = length( p.position - cameraPos );
+            p.cameraDistance = cameraDist * cameraDist;
+        } else {
+            p.cameraDistance = -1.f;
         }
     }
+
+    this->sortParticles();
 }
 
 
@@ -74,7 +81,7 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.position = objPosition;
     particle.color = {rColor, rColor, rColor, 1.f};
     particle.lifetime = 1.f;
-    particle.size =  0.2f + ((rand() % 60) / 100.f); // Size varies between 0.2 and 0.8
+    particle.size =  0.2f + ((rand() % 30) / 100.f); // Size varies between 0.2 and 0.8
 
     float radius = 3.f;     // This changes the spread of the particles
 
@@ -82,7 +89,7 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     float randomVelocityFactor = 0.1f + ((rand() % 100) / 100.f);  // Random factor for velocity strength
 
     // Here we want minus velocity so that particles shoot the opposite way to the rocket.
-    particle.velocity = (objVelocity*-0.6f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
+    particle.velocity = (objVelocity*-1.5f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
 }
 
 void ParticleSystem::reset( Vec3f objPosition ) {
@@ -90,6 +97,19 @@ void ParticleSystem::reset( Vec3f objPosition ) {
         this->particles[i].position = objPosition;
         this->particles[i].velocity = Vec3f { 0.f, 0.f, 0.f };
     }
+}
+
+// Re calculates distances from camera and sorts
+void ParticleSystem::orderParticles( Vec3f cameraPos ) {
+    for (Particle& p : this->particles) {
+        if (p.isDead()) continue;
+        printf("\nOld cameraDist = %f\n", p.cameraDistance);
+        float cameraDist = length( p.position - cameraPos );
+        p.cameraDistance = cameraDist * cameraDist;
+        printf("New cameraDist = %f\n", p.cameraDistance);
+    }
+
+    sortParticles();
 }
 
 void ParticleSystem::init() {
@@ -102,9 +122,9 @@ void ParticleSystem::init() {
     this->uCameraUpWorldSpaceLocation = glGetUniformLocation( this->shader.programId(), "uCameraUpWorldSpace" );
     this->uBillboardSizeLocation = glGetUniformLocation( this->shader.programId(), "uBillboardSize" );
 
-    if (this->uColorLocation == -1) 
+    if (this->uColorLocation == -1)
         std::fprintf(stderr, "Error: 'uColorLocation' not found");
-    if (this->uProjCameraWorldLocation == -1) 
+    if (this->uProjCameraWorldLocation == -1)
         std::fprintf(stderr, "Error: 'uProjCameraWorldLocation' not found");
     if (this->uParticleCenterWorldspaceLocation == -1)
         std::fprintf(stderr, "Error: 'uParticleCenterWorldSpaceLocation' not found");
@@ -147,7 +167,7 @@ void ParticleSystem::init() {
     glGenBuffers( 1, &textureVBO );
     glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
-    
+
     // VAO
     glGenVertexArrays( 1, &this->vao );
     glBindVertexArray( this->vao );
@@ -161,7 +181,7 @@ void ParticleSystem::init() {
     glBindBuffer( GL_ARRAY_BUFFER, textureVBO );
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
     glEnableVertexAttribArray( 1 );
-    
+
     // Clean up
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindVertexArray( 0 );
@@ -172,18 +192,20 @@ void ParticleSystem::init() {
         this->particles.push_back(Particle());
 }
 
-void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
+void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix, Vec3f cameraPos ) {
     /*
-     *  GL_ONE allows 'additive blending', which gives us the glow effect when 
+     *  GL_ONE allows 'additive blending', which gives us the glow effect when
      *  sprites are stacked on each other
      */
+    orderParticles(cameraPos);
+
     glEnable(GL_BLEND);
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
     GLuint currentProgram;
     glGetIntegerv(GL_CURRENT_PROGRAM, reinterpret_cast<GLint*>(&currentProgram));
 
-    if (this->shader.programId() != currentProgram) 
+    if (this->shader.programId() != currentProgram)
         glUseProgram( this->shader.programId() );   // Saves changing the shader if not needed
 
     glBindVertexArray(this->vao);
@@ -201,7 +223,7 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     glUniform3fv( this->uCameraUpWorldSpaceLocation, 1, &cameraUpWorldSpace.x );
 
     // Doing one draw call for each particle is wasteful
-    // Instead use instancing: 
+    // Instead use instancing:
     //      https://www.opengl-tutorial.org/intermediate-tutorials/billboards-particles/particles-instancing/
     for (Particle particle : this->particles) {
         if (!particle.isDead()) {
@@ -209,10 +231,10 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
             Mat44f model2worldParticle = make_translation(particle.position);
             Vec4f particleCenterWorldSpace = model2worldParticle * Vec4f{ 0.f, 0.f, 0.f, 1.f };
 
-            glUniform3f( 
-                this->uParticleCenterWorldspaceLocation, 
-                particleCenterWorldSpace.x, 
-                particleCenterWorldSpace.y, 
+            glUniform3f(
+                this->uParticleCenterWorldspaceLocation,
+                particleCenterWorldSpace.x,
+                particleCenterWorldSpace.y,
                 particleCenterWorldSpace.z
             );
 

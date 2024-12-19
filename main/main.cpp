@@ -480,13 +480,14 @@ int main() try
         double currentTime = glfwGetTime();
         state.deltaTime = currentTime - last;
         last = currentTime;
-            
+
         if (state.vehicleControl.launch) {
             state.particleSystem->update(
                 state.deltaTime,
                 state.vehicleControl.position,
                 state.vehicleControl.velocity,
-                2
+                2,
+                state.camControl.cameraPos
             );
         }
 
@@ -654,19 +655,22 @@ int main() try
             if ( !state.isSplitScreen ) {
                 state.particleSystem->draw(
                     state.renderData.projection * state.renderData.world2camera,
-                    state.renderData.world2camera
+                    state.renderData.world2camera,
+                    state.camControl.cameraPos
                 );
             } else {
                 glViewport(0, 0, fbwidth/2, fbheight);
                 state.particleSystem->draw(
                     state.renderData.projection * state.camControl.getView(),
-                    state.camControl.getView()
+                    state.camControl.getView(),
+                    state.camControl.cameraPos
                 );
 
                 glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
                 state.particleSystem->draw(
                     state.renderData.projection * state.camControl2.getView(),
-                    state.camControl2.getView()
+                    state.camControl2.getView(),
+                    state.camControl2.cameraPos
                 );
             }
         }
@@ -1077,6 +1081,7 @@ namespace
                     state->camControl.cameraFront = state->freeRoamCtrls.cameraFront;
                 if (state->camControl2.camView == FREE_ROAM)
                     state->camControl2.cameraFront = state->freeRoamCtrls.cameraFront;
+
             }
             else {
 
