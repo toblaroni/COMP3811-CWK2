@@ -768,9 +768,9 @@ namespace
         state.renderData.lights = {
             Light{
                 lightPos1,
-                red,                    // Ambient
-                red * 0.5f,             // Diffuse
-                red * 0.3f,             // Specular
+                red,                    // Diffuse
+                red * 0.5f,             // Specular
+                red * 0.3f,             // Ambient
                 lightPos1 - origin      // Offset from the ship
             },
             Light{
@@ -879,25 +879,21 @@ namespace
         // Langerso translations
         Mat44f model2world = kIdentity44f;
         Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
-        Mat44f modelView = state.renderData.world2camera * model2world;
-        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(modelView)));
+        Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
 
         // Translations and projection for first launchpad
         Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
         Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
-        Mat44f modelViewLaunchpad = state.renderData.world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(modelViewLaunchpad)));
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
 
         Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
         Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
-        Mat44f modelViewLaunchpad2 = state.renderData.world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(modelViewLaunchpad2)));
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
 
         // Combine translation and rotation
         Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
         Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
-        Mat44f modelViewVehicle = state.renderData.world2camera * model2worldVehicle;
-        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(modelViewVehicle)));    
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));    
 
         // === Drawing ===
 
