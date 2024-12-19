@@ -106,6 +106,14 @@ namespace
             // This contains the coordinate space for the camera
             Mat44f view = {};
 
+            Mat44f getView() {
+                return look_at(
+                    cameraPos,
+                    cameraPos + cameraFront,  // This is the target AKA what we want to look at
+                    cameraUp
+                );
+            };
+
         };
 
         CamCtrl_ camControl;
@@ -573,6 +581,7 @@ int main() try
         configureCamera( state );
 
         if (!state.isSplitScreen) {
+            glViewport(0, 0, fbwidth, fbheight);
             state.camControl.view = look_at(
                 state.camControl.cameraPos,
                 state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
@@ -642,10 +651,24 @@ int main() try
 
 
         if (state.vehicleControl.hasLaunched) {
-            state.particleSystem->draw(
-                state.renderData.projection * state.renderData.world2camera,
-                state.renderData.world2camera
-            );
+            if ( !state.isSplitScreen ) {
+                state.particleSystem->draw(
+                    state.renderData.projection * state.renderData.world2camera,
+                    state.renderData.world2camera
+                );
+            } else {
+                glViewport(0, 0, fbwidth/2, fbheight);
+                state.particleSystem->draw(
+                    state.renderData.projection * state.camControl.getView(),
+                    state.camControl.getView()
+                );
+
+                glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
+                state.particleSystem->draw(
+                    state.renderData.projection * state.camControl2.getView(),
+                    state.camControl2.getView()
+                );
+            }
         }
 
         // === UI ===

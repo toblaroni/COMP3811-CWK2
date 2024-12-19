@@ -13,6 +13,7 @@ out vec4 oColor;
 void main() {
     vec4 texColor = texture(uSprite, v2fTexCoord);
 
+    // This feels hacky
     if (texColor.a < 0.65) discard;
 
     oColor = (texColor * v2fParticleColor);

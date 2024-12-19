@@ -1,5 +1,6 @@
 // Particle vertex shader
 // https://learnopengl.com/index.php?p=In-Practice/2D-Game/Particles
+//
 #version 410
 
 layout( location = 0 ) in vec3 iPosition;  // Input particle position (e.g., from squareVertices)
@@ -18,6 +19,7 @@ uniform vec2 uBillboardSize;            // Size of the billboard (scale factor)
 
 void main() {
     // Calculate the world-space position for each vertex of the particle
+    // https://www.opengl-tutorial.org/intermediate-tutorials/billboards-particles/billboards/#solution-2--the-3d-way
     vec3 vertexPositionWorldSpace = 
         uParticleCenterWorldSpace
         + uCameraRightWorldSpace * iPosition.x * uBillboardSize.x

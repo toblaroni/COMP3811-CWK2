@@ -180,7 +180,12 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     glEnable(GL_BLEND);
     glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
-    glUseProgram( this->shader.programId() );
+    GLuint currentProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM, reinterpret_cast<GLint*>(&currentProgram));
+
+    if (this->shader.programId() != currentProgram) 
+        glUseProgram( this->shader.programId() );   // Saves changing the shader if not needed
+
     glBindVertexArray(this->vao);
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture(GL_TEXTURE_2D, this->textureId);
@@ -195,8 +200,12 @@ void ParticleSystem::draw( Mat44f projCameraWorld, Mat44f viewMatrix ) {
     glUniform3fv( this->uCameraRightWorldSpaceLocation, 1, &cameraRightWorldSpace.x );
     glUniform3fv( this->uCameraUpWorldSpaceLocation, 1, &cameraUpWorldSpace.x );
 
+    // Doing one draw call for each particle is wasteful
+    // Instead use instancing: 
+    //      https://www.opengl-tutorial.org/intermediate-tutorials/billboards-particles/particles-instancing/
     for (Particle particle : this->particles) {
         if (!particle.isDead()) {
+
             Mat44f model2worldParticle = make_translation(particle.position);
             Vec4f particleCenterWorldSpace = model2worldParticle * Vec4f{ 0.f, 0.f, 0.f, 1.f };
 
