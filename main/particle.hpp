@@ -29,6 +29,7 @@ public:
     // Add offset?
     void update( float dt, Vec3f objPosition, Vec3f objVelocity, unsigned int newParticles );
     void draw( Mat44f, Mat44f );
+    void reset( Vec3f );
 private:
     const ShaderProgram &shader;
     const GLuint textureId;

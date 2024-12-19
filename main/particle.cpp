@@ -85,6 +85,12 @@ void ParticleSystem::respawnParticle( Particle& particle, Vec3f objPosition, Vec
     particle.velocity = (objVelocity*-0.6f) + Vec3f{randomX*radius, randomY*radius, randomZ*radius} * randomVelocityFactor;
 }
 
+void ParticleSystem::reset( Vec3f objPosition ) {
+    for (unsigned int i = 0; i < this->numParticles; ++i) {
+        this->particles[i].position = objPosition;
+        this->particles[i].velocity = Vec3f { 0.f, 0.f, 0.f };
+    }
+}
 
 void ParticleSystem::init() {
     // Generate the uniform locations

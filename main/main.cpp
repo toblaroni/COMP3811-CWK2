@@ -472,7 +472,7 @@ int main() try
         double currentTime = glfwGetTime();
         state.deltaTime = currentTime - last;
         last = currentTime;
-
+            
         if (state.vehicleControl.launch) {
             state.particleSystem->update(
                 state.deltaTime,
@@ -950,6 +950,7 @@ namespace
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
+                // TODO: Make 'reset vehicle' function
                 state->vehicleControl.hasLaunched = false;
                 state->vehicleControl.launch = false;
                 state->vehicleControl.origin = { 3.f, 0.f, -5.f };
@@ -960,12 +961,7 @@ namespace
                 // Reset lights
                 initialisePointLights( *state );
 
-                state->particleSystem->update(
-                    state->deltaTime,
-                    state->vehicleControl.origin,
-                    state->vehicleControl.velocity,
-                    2
-                );
+                state->particleSystem->reset( state->vehicleControl.origin );
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_V) { state->isSplitScreen = !state->isSplitScreen; }
@@ -1127,6 +1123,8 @@ namespace
                             state->vehicleControl.theta = 0.f;
 
                             initialisePointLights( *state );
+
+                            state->particleSystem->reset( state->vehicleControl.origin );
                         }
 
                     }
