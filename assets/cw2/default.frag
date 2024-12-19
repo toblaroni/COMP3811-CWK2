@@ -35,9 +35,15 @@ layout( location = 0 ) out vec3 oColor;
 // layout( binding = 0 ) uniform sampler2D uTexture;
 uniform sampler2D uTexture; // No layout(binding) qualifier
 
-vec3 calcBlinnPhongLighting( vec3 normal, vec3 lightDir, vec3 viewDir, 
-                             vec3 aLightPos, vec3 aSceneAmbient, 
-                             vec3 aLightDiffuse, vec3 aLightSpecular ) {
+vec3 calcBlinnPhongLighting( 
+    vec3 normal, 
+    vec3 lightDir, 
+    vec3 viewDir, 
+    vec3 aLightPos, 
+    vec3 aSceneAmbient, 
+    vec3 aLightDiffuse, 
+    vec3 aLightSpecular 
+) {
     
     
     // Calculate Blinn-Phong lighting
@@ -87,6 +93,8 @@ void main()
     vec3 viewDir = normalize(-v2fViewPos);
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
+        // TODO: REMOVE THIS FROM FRAGMENT SHADER
+        // THIS IS UNECESSARY AND SHOULD BE DONE ONCE BEFORE ON THE CPU
         vec3 lightPosViewSpace = (uViewMatrix * vec4(uLightPos[i], 1.0)).xyz;   // Translate to view pos
 
         vec3 lightDir = normalize(lightPosViewSpace - v2fViewPos);

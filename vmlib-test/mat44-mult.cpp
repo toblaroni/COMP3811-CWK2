@@ -7,6 +7,7 @@ using namespace Catch::Matchers;
 // Mat44 x Mat44 multiplication
 TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
+
     SECTION( "Mat44f-L x Mat44f-R == Known Result" ) {
         Mat44f aLeft = {
             1.0f, 2.0f, 3.0f, 4.0f,
@@ -170,6 +171,7 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
             41.0f, 42.0f, 43.0f, 44.0f,
             45.0f, 46.0f, 47.0f, 48.0f
         };
+
 
 		Mat44f aOneTwo = aOne * aTwo;
         Mat44f aTwoThree = aTwo * aThree;
