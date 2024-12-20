@@ -421,7 +421,7 @@ int main() try
 
     // Init particle system
     GLuint particleSpriteId = load_texture_2d("assets/cw2/particle.png");
-    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 30 );
+    state.particleSystem = new ParticleSystem( particle_prog, particleSpriteId, 50 );
 
     // Other initialization & loading
     OGL_CHECKPOINT_ALWAYS();
@@ -489,7 +489,7 @@ int main() try
                 state.deltaTime,
                 state.vehicleControl.position + Vec3f { 0.f, 0.1f, 0.f },
                 state.vehicleControl.velocity,
-                5,
+                8,
                 state.camControl.cameraPos
             );
         }
@@ -800,7 +800,6 @@ namespace
 			) * velocity;
 
         // Up / Down
-        // TODO - THIS ISN"T RELATIVE TO CAMERA ORIENTATION...
         // Compute the camera's local "upward" direction
         Vec3f cameraRelativeUp = normalize(cross(
             cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp), 
@@ -811,6 +810,7 @@ namespace
             state.freeRoamCtrls.cameraPos += velocity * cameraRelativeUp;
         if (state.freeRoamCtrls.movingDown)
             state.freeRoamCtrls.cameraPos -= velocity * cameraRelativeUp;
+    
 
         // If update the camera to the free roam view
         if (state.camControl.camView == FREE_ROAM) {

@@ -12,9 +12,9 @@
 struct Material {
 	Vec3f ambient;		// Ka
 	Vec3f diffuse;		// Kd
-	Vec3f specular;		// Ks
+	Vec3f specular;	// Ks
 	float shininess;	// Ns
-	Vec3f emissive;		// Ke
+	Vec3f emissive;	// Ke
 	float illum;		// Illumination model
 };
 
