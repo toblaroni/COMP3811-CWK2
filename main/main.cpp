@@ -143,6 +143,7 @@ namespace
 
         // This will hold all data required for rendering
         struct RenderData_ {
+            // TODO A lot of this stuff can be removed from here i reckon.
             GLuint langersoVertexCount;
             GLuint landingPadVertexCount;
             GLuint vehicleVertexCount;
@@ -309,8 +310,9 @@ int main() try
     // TODO: global GL setup goes here
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_FRAMEBUFFER_SRGB );
-    //glEnable( GL_CULL_FACE );
+    glEnable( GL_CULL_FACE );
     glClearColor( 0.2f, 0.2f, 0.2f, 0.f );
+
 
     OGL_CHECKPOINT_ALWAYS();
 

@@ -12,20 +12,20 @@ GLuint create_UI_vao( UserInterface &aUI )
     for (auto b: aUI.buttons) {
 
         // Button Fill
-        positions.push_back(b.corner1); // Top Left
-        positions.push_back({b.corner2.x, b.corner1.y}); // Bottom Left
         positions.push_back(b.corner2); // Bottom Right
+        positions.push_back({b.corner2.x, b.corner1.y}); // Bottom Left
+        positions.push_back(b.corner1); // Top Left
 
+        positions.push_back(b.corner2); // Bottom Right
         positions.push_back(b.corner1); // Top Left
         positions.push_back({b.corner1.x, b.corner2.y}); // Top Right
-        positions.push_back(b.corner2); // Bottom Right
 
         // -------------------------------------------
 
         // Outline: Top Edge
         positions.push_back({b.corner1.x, b.corner1.y}); // Outer Top Left
-        positions.push_back({b.corner2.x, b.corner1.y}); // Outer Top Right
         positions.push_back({b.corner2.x - 0.01f, b.corner1.y - 0.01f}); // Inner Top Right
+        positions.push_back({b.corner2.x, b.corner1.y}); // Outer Top Right
 
         positions.push_back({b.corner1.x, b.corner1.y}); // Outer Top Left
         positions.push_back({b.corner1.x + 0.01f, b.corner1.y - 0.01f}); // Inner Top Left
@@ -37,22 +37,22 @@ GLuint create_UI_vao( UserInterface &aUI )
         positions.push_back({b.corner2.x - 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Right
 
         positions.push_back({b.corner1.x, b.corner2.y}); // Outer Bottom Left
-        positions.push_back({b.corner1.x + 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Left
         positions.push_back({b.corner2.x - 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Right
+        positions.push_back({b.corner1.x + 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Left
 
         // Outline: Left Edge
         positions.push_back({b.corner1.x, b.corner1.y}); // Outer Top Left
         positions.push_back({b.corner1.x, b.corner2.y}); // Outer Bottom Left
         positions.push_back({b.corner1.x + 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Left
 
-        positions.push_back({b.corner1.x, b.corner1.y}); // Outer Top Left
         positions.push_back({b.corner1.x + 0.01f, b.corner1.y - 0.01f}); // Inner Top Left
+        positions.push_back({b.corner1.x, b.corner1.y}); // Outer Top Left
         positions.push_back({b.corner1.x + 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Left
 
         // Outline: Right Edge
         positions.push_back({b.corner2.x, b.corner1.y}); // Outer Top Right
-        positions.push_back({b.corner2.x, b.corner2.y}); // Outer Bottom Right
         positions.push_back({b.corner2.x - 0.01f, b.corner2.y + 0.01f}); // Inner Bottom Right
+        positions.push_back({b.corner2.x, b.corner2.y}); // Outer Bottom Right
 
         positions.push_back({b.corner2.x, b.corner1.y}); // Outer Top Right
         positions.push_back({b.corner2.x - 0.01f, b.corner1.y - 0.01f}); // Inner Top Right
