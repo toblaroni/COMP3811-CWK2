@@ -70,6 +70,14 @@ namespace
 
         // This is needed for particles
         Vec3f velocity = { 0.f, 0.f, 0.f };
+
+        void resetVehicle() {
+            hasLaunched = false;
+            launch = false;
+            position = origin;
+            time = 0.f;
+            theta = 0.f;
+        }
     };
 
 
@@ -143,7 +151,6 @@ namespace
 
         // This will hold all data required for rendering
         struct RenderData_ {
-            // TODO A lot of this stuff can be removed from here i reckon.
             GLuint langersoVertexCount;
             GLuint landingPadVertexCount;
             GLuint vehicleVertexCount;
@@ -590,13 +597,7 @@ int main() try
 
             glViewport(0, 0, fbwidth, fbheight);
 
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.getView();
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -609,35 +610,21 @@ int main() try
             renderScene( state );
 
         } else {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
 
-            state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.getView();
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth/2.f / float(fbheight),  // Aspect ratio
-                0.1f, 100.0f                // Near / far
+                fbwidth/2.f / float(fbheight),              // Aspect ratio
+                0.1f, 100.0f                                // Near / far
             );
 
             glViewport(0, 0, fbwidth/2, fbheight);
-
             renderScene( state );
 
             // === Right hand side ===
-            state.camControl2.view = look_at(
-                state.camControl2.cameraPos,
-                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl2.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl2.view;
-
+            state.renderData.world2camera = state.camControl2.getView();
             glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
-
             renderScene( state );
         }
 
@@ -972,13 +959,7 @@ namespace
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
-                // TODO: Make 'reset vehicle' function
-                state->vehicleControl.hasLaunched = false;
-                state->vehicleControl.launch = false;
-                state->vehicleControl.origin = { 3.f, 0.f, -5.f };
-                state->vehicleControl.position = state->vehicleControl.origin;
-                state->vehicleControl.time = 0.f;
-                state->vehicleControl.theta = 0.f;
+                state->vehicleControl.resetVehicle();
 
                 // Reset lights
                 initialisePointLights( *state );
@@ -1134,13 +1115,7 @@ namespace
                                 state->vehicleControl.hasLaunched = true;
                         }
                         else if (b.text == "Reset") {
-                            state->vehicleControl.launch = false;
-                            state->vehicleControl.hasLaunched = false;
-                            state->vehicleControl.origin = { 3.f, 0.f, -5.f };
-                            state->vehicleControl.position = state->vehicleControl.origin;
-                            state->vehicleControl.time = 0.f;
-                            state->vehicleControl.theta = 0.f;
-
+                            state->vehicleControl.resetVehicle();
                             initialisePointLights( *state );
 
                             state->particleSystem->reset( state->vehicleControl.origin );
