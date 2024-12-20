@@ -801,10 +801,16 @@ namespace
 
         // Up / Down
         // TODO - THIS ISN"T RELATIVE TO CAMERA ORIENTATION...
+        // Compute the camera's local "upward" direction
+        Vec3f cameraRelativeUp = normalize(cross(
+            cross(state.freeRoamCtrls.cameraFront, state.freeRoamCtrls.cameraUp), 
+            state.freeRoamCtrls.cameraFront
+        ));
+
         if (state.freeRoamCtrls.movingUp)
-        	state.freeRoamCtrls.cameraPos.y -= velocity;
+            state.freeRoamCtrls.cameraPos += velocity * cameraRelativeUp;
         if (state.freeRoamCtrls.movingDown)
-        	state.freeRoamCtrls.cameraPos.y += velocity;
+            state.freeRoamCtrls.cameraPos -= velocity * cameraRelativeUp;
 
         // If update the camera to the free roam view
         if (state.camControl.camView == FREE_ROAM) {
