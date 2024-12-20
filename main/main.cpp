@@ -689,7 +689,7 @@ int main() try
                 glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
             }
             else {
-                // keep same color
+                // If inactive
                 static float const baseColor[] = {1.f, 1.f, 1.f, 0.5f};
                 glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
             }
@@ -1081,11 +1081,9 @@ namespace
 
 			else {
 
-				// NDC to screen coords, fbwidth = fnwidth / 2????, 
 				for (auto& b : UI.buttons) {
 					// Convert corner1 and corner2 from NDC to screen space
 					float corner1X, corner2X, corner1Y, corner2Y;
-
 
 					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
 					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X

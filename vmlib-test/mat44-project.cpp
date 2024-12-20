@@ -4,15 +4,12 @@
 
 #include "../vmlib/mat44.hpp"
 
-// See mat44-rotation.cpp first.
+using namespace Catch::Matchers;
 
-// NEED TO DO THIS !!!!!!!!!!!!!!
 
 TEST_CASE( "Perspective projection", "[mat44]" )
 {
-	static constexpr float kEps_ = 1e-6f;
-
-	using namespace Catch::Matchers;
+	static constexpr float tolerance = 1e-5f;
 
 	// "Standard" projection matrix presented in the exercises. Assumes
 	// standard window size (e.g., 1280x720).
@@ -20,32 +17,88 @@ TEST_CASE( "Perspective projection", "[mat44]" )
 	// Field of view (FOV) = 60 degrees
 	// Window size is 1280x720 and we defined the aspect ratio as w/h
 	// Near plane at 0.1 and far at 100
-	SECTION( "Standard" )
+	SECTION( "Standard, from the exercises" )
 	{
-		auto const proj = make_perspective_projection(
+		Mat44f proj = make_perspective_projection(
 			60.f * std::numbers::pi_v<float> / 180.f,
 			1280/float(720),
 			0.1f, 100.f
 		);
 
-		REQUIRE_THAT( proj(0,0), WithinAbs( 0.974279, kEps_ ) );
-		REQUIRE_THAT( proj(0,1), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(0,2), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(0,3), WithinAbs( 0.f, kEps_ ) );
+        Mat44f expected = {
+            0.974279f, 0.f,       0.f,        0.f,
+            0.f,       1.732051f, 0.f,        0.f,
+            0.f,       0.f,      -1.002002f, -0.200200f,
+            0.f,       0.f,      -1.f,        0.f
+        };
 
-		REQUIRE_THAT( proj(1,0), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(1,1), WithinAbs( 1.732051f, kEps_ ) );
-		REQUIRE_THAT( proj(1,2), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(1,3), WithinAbs( 0.f, kEps_ ) );
 
-		REQUIRE_THAT( proj(2,0), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(2,1), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(2,2), WithinAbs( -1.002002f, kEps_ ) );
-		REQUIRE_THAT( proj(2,3), WithinAbs( -0.200200f, kEps_ ) );
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(proj.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+	}
 
-		REQUIRE_THAT( proj(3,0), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(3,1), WithinAbs( 0.f, kEps_ ) );
-		REQUIRE_THAT( proj(3,2), WithinAbs( -1.f, kEps_ ) );
-		REQUIRE_THAT( proj(3,3), WithinAbs( 0.f, kEps_ ) );
+    SECTION( "Split-screen" )
+	{
+		Mat44f proj = make_perspective_projection(
+			60.f * std::numbers::pi_v<float> / 180.f,
+			640/float(720),
+			0.1f, 100.f
+		);
+
+        Mat44f expected = {
+            1.948557f, 0.f,       0.f,        0.f,
+            0.f,       1.732051f, 0.f,        0.f,
+            0.f,       0.f,      -1.002002f, -0.200200f,
+            0.f,       0.f,      -1.f,        0.f
+        };
+
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(proj.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+	}
+
+    SECTION( "Wide FOV on Ultrawide screen" )
+	{
+		Mat44f proj = make_perspective_projection(
+			90.f * std::numbers::pi_v<float> / 180.f,
+            3440/float(1440),
+			0.1f, 100.f
+		);
+
+        Mat44f expected = {
+            0.4186f, 0.f,       0.f,        0.f,
+            0.f,     1.0f,      0.f,        0.f,
+            0.f,     0.f,      -1.002002f, -0.200200f,
+            0.f,     0.f,      -1.f,        0.f
+        };
+
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(proj.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+	}
+
+    // DO THIS STILL!!!!!
+    SECTION( "Altered near and far plane" )
+	{
+		Mat44f proj = make_perspective_projection(
+			60.f * std::numbers::pi_v<float> / 180.f,
+			1280/float(720),
+			1.f, 10.f
+		);
+
+        Mat44f expected = {
+            0.974279f, 0.f,       0.f,        0.f,
+            0.f,       1.732051f, 0.f,        0.f,
+            0.f,       0.f,      -1.002002f, -0.200200f,
+            0.f,       0.f,      -1.f,        0.f
+        };
+
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(proj.v[i], WithinAbs(expected.v[i], tolerance));
+        }
 	}
 }

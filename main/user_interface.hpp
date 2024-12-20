@@ -18,25 +18,14 @@ struct Button {
 	size_t state = 0;
 };
 
-struct Text {
-    std::string text;
-    Vec2f position;
-    Vec4f color;
-};
 
 class UserInterface {
 public:
     std::vector<Button> buttons;
-    std::vector<Text> texts;
 
     // Method to add a button
     void add_button(const std::string& text, const Vec2f& corner1, const Vec2f& corner2, const Vec4f& color) {
         buttons.push_back({text, corner1, corner2, color});
-    }
-
-    // Method to add text
-    void add_text(const std::string& text, const Vec2f& position, const Vec4f& color) {
-        texts.push_back({text, position, color});
     }
 
 };

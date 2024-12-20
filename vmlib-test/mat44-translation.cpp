@@ -5,7 +5,6 @@
 using namespace Catch::Matchers;
 
 
-// Mat44 x Rotation in X
 TEST_CASE("4x4 matrix by Translation", "[translation][mat44]") {
 
     static constexpr float tolerance = 1e-5f;

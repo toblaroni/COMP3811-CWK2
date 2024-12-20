@@ -100,7 +100,7 @@ TEST_CASE("4x4 matrix by Rotaion in Y", "[rotation][mat44]") {
 
     SECTION( "make_rotation_y(theta) x make_rotation_y(-theta) == Identity" ) {
 
-        float arbitrary_angle = 17.f * std::numbers::pi_v<float> / 180.f;
+        float arbitrary_angle = -17.f * std::numbers::pi_v<float> / 180.f;
 
         Mat44f result = make_rotation_y(arbitrary_angle) * make_rotation_y(-arbitrary_angle);
 
@@ -168,7 +168,7 @@ TEST_CASE("4x4 matrix by Rotaion in Z", "[rotation][mat44]") {
 
     SECTION( "make_rotation_z(theta) x make_rotation_z(-theta) == Identity" ) {
 
-        float arbitrary_angle = 967.f * std::numbers::pi_v<float> / 180.f;
+        float arbitrary_angle = 967.7f * std::numbers::pi_v<float> / 180.f;
 
         Mat44f result = make_rotation_z(arbitrary_angle) * make_rotation_z(-arbitrary_angle);
 

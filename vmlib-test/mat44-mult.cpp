@@ -7,6 +7,7 @@ using namespace Catch::Matchers;
 // Mat44 x Mat44 multiplication
 TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
+    const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 
     SECTION( "Mat44f-L x Mat44f-R == Known Result" ) {
         Mat44f aLeft = {
@@ -32,14 +33,11 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
         Mat44f result = aLeft * aRight;
 
-        const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
         for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
         }
     }
 	
-	/* This test will multiply an arbitrary matrix against its identity matrix
-		to assess whether the result is the same as the original matrix. */
 	SECTION( "Mat44f x Identity == Identity" )
 	{
 		Mat44f m = { {
@@ -51,7 +49,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 		Mat44f result = m * kIdentity44f;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -68,7 +65,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 		Mat44f result = kIdentity44f * m;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
         }
@@ -92,7 +88,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 		Mat44f result = m * zero;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(zero.v[i], tolerance));
         }
@@ -116,7 +111,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 		Mat44f result = zero * m;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(result.v[i], WithinAbs(zero.v[i], tolerance));
         }
@@ -142,7 +136,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 		Mat44f aLeftRight = aLeft * aRight;
         Mat44f aRightLeft = aRight * aLeft;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(aLeftRight.v[i], !WithinAbs(aRightLeft.v[i], tolerance));
         }
@@ -175,7 +168,6 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
         Mat44f aOneTwo_Three = (aOne * aTwo) * aThree;
         Mat44f aOne_TwoThree = aOne * (aTwo * aThree);
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {
             REQUIRE_THAT(aOneTwo_Three.v[i], WithinAbs(aOne_TwoThree.v[i], tolerance));
         }
@@ -185,6 +177,8 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
 
 // Mat44 x Vec4 multiplication
 TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
+
+    const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 
     SECTION("Simple Mat44f x Vec4f Test") {
         Mat44f matrix = {
@@ -204,16 +198,12 @@ TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
 
 		Vec4f result = matrix * vector;
 
-        const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
-
         REQUIRE_THAT(result.x, WithinAbs(expected.x, tolerance));
         REQUIRE_THAT(result.y, WithinAbs(expected.y, tolerance));
         REQUIRE_THAT(result.z, WithinAbs(expected.z, tolerance));
         REQUIRE_THAT(result.w, WithinAbs(expected.w, tolerance));
     }
 
-    /* This test will multiply the identity matrix against an arbitrary vector
-	to assess whether the result is the same as the original matrix. */
 	SECTION( "Identity x Vec4f == Vec4f" )
 	{
         Vec4f vector = { 
@@ -222,7 +212,6 @@ TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
 
 		Vec4f result = kIdentity44f * vector;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
         REQUIRE_THAT(result.x, WithinAbs(vector.x, tolerance));
         REQUIRE_THAT(result.y, WithinAbs(vector.y, tolerance));
         REQUIRE_THAT(result.z, WithinAbs(vector.z, tolerance));
@@ -244,7 +233,6 @@ TEST_CASE("4x4 matrix by 4x1 vector multiplication", "[mat44][vec4]") {
 
 		Vec4f result = zero * vector;
 
-		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
         REQUIRE_THAT(result.x, WithinAbs(0.f, tolerance));
         REQUIRE_THAT(result.y, WithinAbs(0.f, tolerance));
         REQUIRE_THAT(result.z, WithinAbs(0.f, tolerance));
