@@ -172,12 +172,8 @@ TEST_CASE("4x4 matrix by 4x4 matrix multiplication", "[mat44]") {
             45.0f, 46.0f, 47.0f, 48.0f
         };
 
-
-		Mat44f aOneTwo = aOne * aTwo;
-        Mat44f aTwoThree = aTwo * aThree;
-
-        Mat44f aOneTwo_Three = aOneTwo * aThree;
-        Mat44f aOne_TwoThree = aOne * aTwoThree;
+        Mat44f aOneTwo_Three = (aOne * aTwo) * aThree;
+        Mat44f aOne_TwoThree = aOne * (aTwo * aThree);
 
 		const float tolerance = 1e-6f; // Adjust tolerance as needed for precision
 		for (int i = 0; i < 16; ++i) {

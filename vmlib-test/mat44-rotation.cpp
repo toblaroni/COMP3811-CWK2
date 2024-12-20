@@ -6,139 +6,207 @@
 
 using namespace Catch::Matchers;
 
-// THIS NEEDS A ROTATION BY A KNOWN ANGLE TO TEST AGAINST
-// MAYBE HAVE THE STARTING MATRIX ASSIGNED USING RANDOM VALUES?
-
-// NEED TO LOOK INTO IF CATCH2 HAS A RANDOM NUMBER GENERATOR
 
 // Mat44 x Rotation in X
+TEST_CASE("4x4 matrix by Rotaion in X", "[rotation][mat44]") {
 
-TEST_CASE("4x4 matrix by Rotaion in X", "[mat44]") {
+    static constexpr float tolerance = 1e-5f;
 
-    SECTION( "Mat44f x make_rotation_x(0) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_x(0) == Identity" ) {
 
-        Mat44f result = m * make_rotation_x(0);
-
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        Mat44f result = make_rotation_x(0.f);
 
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
 
-    SECTION( "Mat44f x make_rotation_x(360) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_x(360) == Identity" ) {
 
-        Mat44f result = m * make_rotation_x(2* std::numbers::pi_v<float>);
+        Mat44f result = make_rotation_x(2* std::numbers::pi_v<float>);
 
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
 
-    SECTION( "Mat44f x make_rotation_x(theta) x make_rotation_x(-theta) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_x(theta) x make_rotation_x(-theta) == Identity" ) {
 
-        Mat44f result = m * make_rotation_x(2* std::numbers::pi_v<float>);
+        float arbitrary_angle = 238.f * std::numbers::pi_v<float> / 180.f;
 
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        Mat44f result = make_rotation_x(arbitrary_angle) * make_rotation_x(-arbitrary_angle);
 
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
+
+    SECTION( "make_rotation_x(90) == Known result" ) {
+
+        Mat44f expected = {
+            1.0f,  0.0f,  0.0f, 0.0f,
+            0.0f,  0.0f, -1.0f, 0.0f,
+            0.0f,  1.0f,  0.0f, 0.0f,
+            0.0f,  0.0f,  0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_x(std::numbers::pi_v<float>/2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
+    SECTION( "make_rotation_x(-90) == Known result" ) {
+
+        Mat44f expected = {
+            1.0f,  0.0f,  0.0f, 0.0f,
+            0.0f,  0.0f,  1.0f, 0.0f,
+            0.0f, -1.0f,  0.0f, 0.0f,
+            0.0f,  0.0f,  0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_x(-std::numbers::pi_v<float> / 2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
 }
 
 // Mat44 x Rotation in Y
+TEST_CASE("4x4 matrix by Rotaion in Y", "[rotation][mat44]") {
 
-TEST_CASE("4x4 matrix by Rotaion in Y", "[mat44]") {
+    static constexpr float tolerance = 1e-5f;
 
-    SECTION( "Mat44f x make_rotation_y(0) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_y(0) == Identity" ) {
 
-        Mat44f result = m * make_rotation_y(0);
-
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        Mat44f result = make_rotation_y(0);
 
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
 
-    SECTION( "Mat44f x make_rotation_y(360) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_y(360) == Identity" ) {
 
-        Mat44f result = m * make_rotation_y(2* std::numbers::pi_v<float>);
-
-        // DONT KNOW WHY THIS TOLERANCE DOESNT WORK?????
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        Mat44f result = make_rotation_y(2* std::numbers::pi_v<float>);
 
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
+
+    SECTION( "make_rotation_y(theta) x make_rotation_y(-theta) == Identity" ) {
+
+        float arbitrary_angle = 17.f * std::numbers::pi_v<float> / 180.f;
+
+        Mat44f result = make_rotation_y(arbitrary_angle) * make_rotation_y(-arbitrary_angle);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
+        }
+    }
+
+    SECTION( "make_rotation_y(90) == Known result " ) {
+
+        Mat44f expected = {
+            0.0f, 0.0f,  1.0f, 0.0f,
+            0.0f, 1.0f,  0.0f, 0.0f,
+           -1.0f, 0.0f,  0.0f, 0.0f,
+            0.0f, 0.0f,  0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_y(std::numbers::pi_v<float> / 2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
+    SECTION( "make_rotation_y(-90) == Known result" ) {
+
+        Mat44f expected = {
+            0.0f,  0.0f, -1.0f, 0.0f,
+            0.0f,  1.0f,  0.0f, 0.0f,
+            1.0f,  0.0f,  0.0f, 0.0f,
+            0.0f,  0.0f,  0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_y(-std::numbers::pi_v<float> / 2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
 }
 
 // Mat44 x Rotation in Z
-TEST_CASE("4x4 matrix by Rotaion in Z", "[mat44]") {
+TEST_CASE("4x4 matrix by Rotaion in Z", "[rotation][mat44]") {
 
-    SECTION( "Mat44f x make_rotation_z(0) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    static constexpr float tolerance = 1e-5f;
 
-        Mat44f result = m * make_rotation_z(0);
+    SECTION( "make_rotation_z(0) == Identity" ) {
 
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
+        Mat44f result = make_rotation_z(0);
+
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
 
-    SECTION( "Mat44f x make_rotation_z(360) == Mat44f" ) {
-        Mat44f m = {
-            1.0f, 2.0f, 3.0f, 4.0f,
-            5.0f, 6.0f, 7.0f, 8.0f,
-            9.0f, 10.0f, 11.0f, 12.0f,
-            13.0f, 14.0f, 15.0f, 16.0f
-        };
+    SECTION( "make_rotation_z(360) == Identity" ) {
 
-        Mat44f result = m * make_rotation_z(2* std::numbers::pi_v<float>);
+        Mat44f result = make_rotation_z(2* std::numbers::pi_v<float>);
 
-        // DONT KNOW WHY THIS TOLERANCE DOESNT WORK?????
-        const float tolerance = 1e-5f; // Adjust tolerance as needed for precision
         for (int i = 0; i < 16; ++i) {
-            REQUIRE_THAT(result.v[i], WithinAbs(m.v[i], tolerance));
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
         }
     }
+
+    SECTION( "make_rotation_z(theta) x make_rotation_z(-theta) == Identity" ) {
+
+        float arbitrary_angle = 967.f * std::numbers::pi_v<float> / 180.f;
+
+        Mat44f result = make_rotation_z(arbitrary_angle) * make_rotation_z(-arbitrary_angle);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(kIdentity44f.v[i], tolerance));
+        }
+    }
+
+    SECTION( "make_rotation_z(90) == Known result" ) {
+
+        Mat44f expected = {
+            0.0f, -1.0f, 0.0f, 0.0f,
+            1.0f,  0.0f, 0.0f, 0.0f,
+            0.0f,  0.0f, 1.0f, 0.0f,
+            0.0f,  0.0f, 0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_z(std::numbers::pi_v<float> / 2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
+    SECTION( "make_rotation_z(-90) == Known result" ) {
+
+        Mat44f expected = {
+            0.0f,  1.0f,  0.0f, 0.0f,
+           -1.0f,  0.0f,  0.0f, 0.0f,
+            0.0f,  0.0f,  1.0f, 0.0f,
+            0.0f,  0.0f,  0.0f, 1.0f
+        };
+
+        Mat44f result = make_rotation_z(-std::numbers::pi_v<float> / 2.f);
+
+        for (int i = 0; i < 16; ++i) {
+            REQUIRE_THAT(result.v[i], WithinAbs(expected.v[i], tolerance));
+        }
+    }
+
 }
