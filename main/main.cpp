@@ -59,36 +59,17 @@ namespace
     };
 
 
-    struct VehicleCtrl_ {
-        bool hasLaunched = false;       // This lets us know if the ship has launched already (for particles)
-        bool launch = false;
-        Vec3f origin = { 3.f, 0.f, -5.f };
-        Vec3f position = origin;
-
-        float time = 0.f;
-        float theta = 0.f;
-
-        // This is needed for particles
-        Vec3f velocity = { 0.f, 0.f, 0.f };
-
-        void resetVehicle() {
-            hasLaunched = false;
-            launch = false;
-            position = origin;
-            time = 0.f;
-            theta = 0.f;
-        }
-    };
-
-
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
         ShaderProgram* UI_prog;
 
+        double deltaTime;
+
         bool isSplitScreen = false;
 
         ParticleSystem *particleSystem;
+        VehicleCtrl_ vehicleControl;
 
         /*
         *  === Camera Controls ===
@@ -147,8 +128,6 @@ namespace
         } freeRoamCtrls;
 
 
-        double deltaTime;    // This allows smooth camera movement
-
         // This will hold all data required for rendering
         struct RenderData_ {
             GLuint langersoVertexCount;
@@ -193,7 +172,6 @@ namespace
 
         } renderData;
 
-        VehicleCtrl_ vehicleControl;
     };
 
     void glfw_callback_error_( int, char const* );
