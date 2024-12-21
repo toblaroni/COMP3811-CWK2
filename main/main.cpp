@@ -439,6 +439,18 @@ int main() try
     // Main loop
     while( !glfwWindowShouldClose( window ) )
     {
+
+		// GLuint queries[2];
+		// glGenQueries(2, queries);
+
+		// glQueryCounter(GL_TIMESTAMP, queries[0]); // Record the timestamp before rendering
+		// glBeginQuery(GL_TIME_ELAPSED, queries[1]); // Start measuring elapsed time
+
+
+
+
+
+
         // Let GLFW process events
         glfwPollEvents();
 
@@ -681,6 +693,13 @@ int main() try
 
         // Display results
         glfwSwapBuffers( window );
+
+
+
+		// glEndQuery(GL_TIME_ELAPSED); // End elapsed time measurement
+		// glQueryCounter(GL_TIMESTAMP, queries[1]); // Record the timestamp after rendering
+
+		break;
     }
 
     // Cleanup.
