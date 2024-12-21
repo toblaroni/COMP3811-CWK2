@@ -124,7 +124,7 @@ SimpleMeshData make_vehicle() {
         make_translation({0.f, 0.7f, 0.f}) * make_scaling(.025f, .025f, .025f)
     );
 
-    auto upper = concatenate(top, point);
+    auto upper = concatenate(point, top);
 
     auto shaft = concatenate(upper, middle);
 

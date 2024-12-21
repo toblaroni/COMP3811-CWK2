@@ -298,7 +298,6 @@ int main() try
     glEnable( GL_CULL_FACE );
     glClearColor( 0.2f, 0.2f, 0.2f, 0.f );
 
-
     OGL_CHECKPOINT_ALWAYS();
 
     // Get actual framebuffer size.
@@ -485,10 +484,11 @@ int main() try
         OGL_CHECKPOINT_DEBUG();
 
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(prog.programId());
 
         glEnable( GL_DEPTH_TEST );
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDepthFunc(GL_LESS); // Ensure closer fragments overwrite farther ones
 
         // === Setup Lighting ===
         // Original directional lighting
@@ -833,6 +833,8 @@ namespace
 
     // Contains main rendering logic
     void renderScene( State_ &state ) {
+
+
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
