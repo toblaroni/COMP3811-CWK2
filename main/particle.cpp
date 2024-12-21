@@ -128,17 +128,17 @@ void ParticleSystem::init() {
     this->uCameraUpWorldSpaceLocation = glGetUniformLocation( this->shader.programId(), "uCameraUpWorldSpace" );
     this->uBillboardSizeLocation = glGetUniformLocation( this->shader.programId(), "uBillboardSize" );
 
-    if (this->uColorLocation == -1)
+    if (this->uColorLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uColorLocation' not found");
-    if (this->uProjCameraWorldLocation == -1)
+    if (this->uProjCameraWorldLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uProjCameraWorldLocation' not found");
-    if (this->uParticleCenterWorldspaceLocation == -1)
+    if (this->uParticleCenterWorldspaceLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uParticleCenterWorldSpaceLocation' not found");
-    if (this->uCameraRightWorldSpaceLocation == -1)
+    if (this->uCameraRightWorldSpaceLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uCameraRightWorldSpaceLocation' not found");
-    if (this->uCameraUpWorldSpaceLocation == -1)
+    if (this->uCameraUpWorldSpaceLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uCameraUpWorldSpaceLocation' not found");
-    if (this->uBillboardSizeLocation == -1)
+    if (this->uBillboardSizeLocation == static_cast<GLuint>(-1))
         std::fprintf(stderr, "Error: 'uBillboardSizeLocation' not found");
 
     float positions[] = {

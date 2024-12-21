@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 
 #include <typeinfo>
-#include <format>
 #include <cstdio>
 #include <cstdlib>
 
@@ -359,21 +358,21 @@ int main() try
     // Generate locations for lights
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         // Light Position
-        std::string lightPosUniform = std::format("uLightPos[{}]", i);
+        std::string lightPosUniform = "uLightPos[" + std::to_string(i) + "]";
         state.renderData.uLightPosLocations[i] = glGetUniformLocation(prog.programId(), lightPosUniform.c_str());
 
         // Light Diffuse
-        std::string lightDiffuseUniform = std::format("uLightDiffuse[{}]", i);
+        std::string lightDiffuseUniform = "uLightDiffuse[" + std::to_string(i) + "]";
         state.renderData.uLightDiffuseLocations[i] = glGetUniformLocation(prog.programId(), lightDiffuseUniform.c_str());
 
         // Light Specular
-        std::string lightSpecularUniform = std::format("uLightSpecular[{}]", i);
+        std::string lightSpecularUniform = "uLightSpecular[" + std::to_string(i) + "]";
         state.renderData.uLightSpecularLocations[i] = glGetUniformLocation(prog.programId(), lightSpecularUniform.c_str());
 
         // Scene Ambient
-        std::string sceneAmbientUniform = std::format("uSceneAmbient[{}]", i);
+        std::string sceneAmbientUniform = "uSceneAmbient[" + std::to_string(i) + "]";
         state.renderData.uSceneAmbientLocations[i] = glGetUniformLocation(prog.programId(), sceneAmbientUniform.c_str());
-
+        
         // Check Uniform Locations
         if (state.renderData.uLightPosLocations[i] == static_cast<GLuint>(-1))
             fprintf(stderr, "Error: Uniform location for %s not found!\n", lightPosUniform.c_str());
@@ -728,8 +727,8 @@ namespace
         // Evenly spaced positions around the ship
         float radius = 0.5f; // Distance from the ship's origin
         Vec3f lightPos1 = Vec3f{origin.x + radius, origin.y + 0.3f, origin.z};
-        Vec3f lightPos2 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z + radius * sqrt(3.f) / 2.f};
-        Vec3f lightPos3 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z - radius * sqrt(3.f) / 2.f};
+        Vec3f lightPos2 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z + radius * std::sqrt(3.f) / 2.f};
+        Vec3f lightPos3 = Vec3f{origin.x - radius * 0.5f, origin.y + 0.3f, origin.z - radius * std::sqrt(3.f) / 2.f};
 
         // RGB colors for the lights
         Vec3f red   = Vec3f{1.0f, 0.0f, 0.0f};
