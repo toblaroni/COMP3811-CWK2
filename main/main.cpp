@@ -59,28 +59,17 @@ namespace
     };
 
 
-    struct VehicleCtrl_ {
-        bool hasLaunched = false;       // This lets us know if the ship has launched already (for particles)
-        bool launch = false;
-        Vec3f origin = { 3.f, 0.f, -5.f };
-        Vec3f position = origin;
-
-        float time = 0.f;
-        float theta = 0.f;
-
-        // This is needed for particles
-        Vec3f velocity = { 0.f, 0.f, 0.f };
-    };
-
-
     // This will contain the state of our program
     struct State_ {
         ShaderProgram* prog;
         ShaderProgram* UI_prog;
 
+        double deltaTime;
+
         bool isSplitScreen = false;
 
         ParticleSystem *particleSystem;
+        VehicleCtrl_ vehicleControl;
 
         /*
         *  === Camera Controls ===
@@ -139,11 +128,8 @@ namespace
         } freeRoamCtrls;
 
 
-        double deltaTime;    // This allows smooth camera movement
-
         // This will hold all data required for rendering
         struct RenderData_ {
-            // TODO A lot of this stuff can be removed from here i reckon.
             GLuint langersoVertexCount;
             GLuint landingPadVertexCount;
             GLuint vehicleVertexCount;
@@ -186,7 +172,6 @@ namespace
 
         } renderData;
 
-        VehicleCtrl_ vehicleControl;
     };
 
     void glfw_callback_error_( int, char const* );
@@ -312,7 +297,6 @@ int main() try
     glEnable( GL_FRAMEBUFFER_SRGB );
     glEnable( GL_CULL_FACE );
     glClearColor( 0.2f, 0.2f, 0.2f, 0.f );
-
 
     OGL_CHECKPOINT_ALWAYS();
 
@@ -500,10 +484,11 @@ int main() try
         OGL_CHECKPOINT_DEBUG();
 
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glUseProgram(prog.programId());
 
         glEnable( GL_DEPTH_TEST );
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glDepthFunc(GL_LESS); // Ensure closer fragments overwrite farther ones
 
         // === Setup Lighting ===
         // Original directional lighting
@@ -590,13 +575,7 @@ int main() try
 
             glViewport(0, 0, fbwidth, fbheight);
 
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.getView();
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
@@ -609,35 +588,21 @@ int main() try
             renderScene( state );
 
         } else {
-            state.camControl.view = look_at(
-                state.camControl.cameraPos,
-                state.camControl.cameraPos + state.camControl.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl.cameraUp
-            );
 
-            state.renderData.world2camera = state.camControl.view;
+            state.renderData.world2camera = state.camControl.getView();
 
             state.renderData.projection = make_perspective_projection(
                 60.f * std::numbers::pi_v<float> / 180.f,
-                fbwidth/2.f / float(fbheight),  // Aspect ratio
-                0.1f, 100.0f                // Near / far
+                fbwidth/2.f / float(fbheight),              // Aspect ratio
+                0.1f, 100.0f                                // Near / far
             );
 
             glViewport(0, 0, fbwidth/2, fbheight);
-
             renderScene( state );
 
             // === Right hand side ===
-            state.camControl2.view = look_at(
-                state.camControl2.cameraPos,
-                state.camControl2.cameraPos + state.camControl2.cameraFront,  // This is the target AKA what we want to look at
-                state.camControl2.cameraUp
-            );
-
-            state.renderData.world2camera = state.camControl2.view;
-
+            state.renderData.world2camera = state.camControl2.getView();
             glViewport(fbwidth/2, 0, fbwidth/2, fbheight);
-
             renderScene( state );
         }
 
@@ -868,6 +833,8 @@ namespace
 
     // Contains main rendering logic
     void renderScene( State_ &state ) {
+
+
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
@@ -972,13 +939,7 @@ namespace
             }
 
             if (aAction == GLFW_PRESS && aKey == GLFW_KEY_R) {
-                // TODO: Make 'reset vehicle' function
-                state->vehicleControl.hasLaunched = false;
-                state->vehicleControl.launch = false;
-                state->vehicleControl.origin = { 3.f, 0.f, -5.f };
-                state->vehicleControl.position = state->vehicleControl.origin;
-                state->vehicleControl.time = 0.f;
-                state->vehicleControl.theta = 0.f;
+                state->vehicleControl.resetVehicle();
 
                 // Reset lights
                 initialisePointLights( *state );
@@ -1132,13 +1093,7 @@ namespace
                                 state->vehicleControl.hasLaunched = true;
                         }
                         else if (b.text == "Reset") {
-                            state->vehicleControl.launch = false;
-                            state->vehicleControl.hasLaunched = false;
-                            state->vehicleControl.origin = { 3.f, 0.f, -5.f };
-                            state->vehicleControl.position = state->vehicleControl.origin;
-                            state->vehicleControl.time = 0.f;
-                            state->vehicleControl.theta = 0.f;
-
+                            state->vehicleControl.resetVehicle();
                             initialisePointLights( *state );
 
                             state->particleSystem->reset( state->vehicleControl.origin );
