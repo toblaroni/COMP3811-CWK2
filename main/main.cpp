@@ -173,7 +173,7 @@ namespace
         } renderData;
 
         #ifdef ENABLE_TIMING
-        GLuint queries[10];
+        GLuint queries[12];
         size_t qCount = 0;
 
         std::__1::chrono::steady_clock::time_point startF2F;
@@ -713,6 +713,8 @@ int main() try
         
         
         #ifdef ENABLE_TIMING
+
+        std::__1::chrono::steady_clock::time_point totalF2F = std::chrono::high_resolution_clock::now() - state.startF2F;
         
         GLuint64 start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, startUI_1, endUI_1, startUI_2, endUI_2;
         glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &start1_2);
@@ -736,7 +738,6 @@ int main() try
                             (endUI_1 - startUI_1) +
                             (endUI_2 - startUI_2);
 
-        std::__1::chrono::steady_clock::time_point totalF2F = std::chrono::high_resolution_clock::now() - state.startF2F;
         std::__1::chrono::steady_clock::time_point totalCPUtime = totalF2F - std::chrono::nanoseconds(totalGPUtime);
 
         printf("Per Frame Total Render Time, GPU: %lu ns\n", totalGPUtime);
@@ -745,8 +746,7 @@ int main() try
         printf("1.5 Render Time, GPU: %lu ns\n", end1_5 - start1_5);
 
         printf("Frame-to-Frame Time, CPU: %lu ns\n", totalF2F);
-
-
+        printf("Time to submit Rendering, CPU: %lu ns\n", totalF2F - std::chrono::nanoseconds(totalGPUtime));
 
         glDeleteQueries(12, state.queries);
 
@@ -754,18 +754,8 @@ int main() try
 
         #endif
 
-
-
-
-
-
         // Display results
         glfwSwapBuffers( window );
-
-
-
-
-
     }
 
     // Cleanup.
@@ -926,7 +916,6 @@ namespace
     // Contains main rendering logic
     void renderScene( State_ &state ) {
 
-
         // === Setting up models ===
         // Langerso translations
         Mat44f model2world = kIdentity44f;
@@ -937,7 +926,8 @@ namespace
         Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
         Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
         Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
-
+        
+        // Translations and projection for second launchpad
         Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
         Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
         Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
@@ -980,12 +970,12 @@ namespace
 
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
 
+        // Draw second launch pad
         glUniformMatrix4fv(
             state.renderData.uModel2WorldLocation, 1,
             GL_TRUE, model2worldLaunchpad2.v
         );
 
-        // Draw second launch pad
         drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
 
     }
