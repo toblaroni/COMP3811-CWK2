@@ -21,6 +21,7 @@
 
 #include <fontstash.h>
 #include <stb_truetype.h>
+#include <chrono>
 
 #define FONTSTASH_IMPLEMENTATION
 
@@ -36,7 +37,7 @@
 #define MOUSE_OVER 1
 #define PRESSED 2
 
-#define ENABLE_TIMING 1
+#define ENABLE_TIMING
 
 namespace
 {
@@ -176,7 +177,7 @@ namespace
         GLuint queries[12];
         size_t qCount = 0;
 
-        std::__1::chrono::steady_clock::time_point startF2F;
+        std::chrono::_V2::system_clock::time_point startF2F;
         #endif
 
 
@@ -714,7 +715,7 @@ int main() try
         
         #ifdef ENABLE_TIMING
 
-        std::__1::chrono::steady_clock::time_point totalF2F = std::chrono::high_resolution_clock::now() - state.startF2F;
+        auto totalF2F = std::chrono::high_resolution_clock::now() - state.startF2F;
         
         GLuint64 start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, startUI_1, endUI_1, startUI_2, endUI_2;
         glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &start1_2);
@@ -738,15 +739,15 @@ int main() try
                             (endUI_1 - startUI_1) +
                             (endUI_2 - startUI_2);
 
-        std::__1::chrono::steady_clock::time_point totalCPUtime = totalF2F - std::chrono::nanoseconds(totalGPUtime);
+        auto totalCPUtime = totalF2F - std::chrono::nanoseconds(totalGPUtime);
 
         printf("Per Frame Total Render Time, GPU: %lu ns\n", totalGPUtime);
         printf("1.2 Render Time, GPU: %lu ns\n", end1_2 - start1_2);
         printf("1.4 Render Time, GPU: %lu ns\n", (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2));
         printf("1.5 Render Time, GPU: %lu ns\n", end1_5 - start1_5);
 
-        printf("Frame-to-Frame Time, CPU: %lu ns\n", totalF2F);
-        printf("Time to submit Rendering, CPU: %lu ns\n", totalF2F - std::chrono::nanoseconds(totalGPUtime));
+        printf("Frame-to-Frame Time, CPU: %lu ns\n", totalF2F.count());
+        printf("Time to submit Rendering, CPU: %lu ns\n", totalCPUtime.count());
 
         glDeleteQueries(12, state.queries);
 
