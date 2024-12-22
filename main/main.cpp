@@ -448,7 +448,7 @@ int main() try
         #ifdef ENABLE_TIMING
 		glGenQueries(10, state.queries);
 
-		glQueryCounter(state.queries[++state.qCount], GL_TIMESTAMP);
+		glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
         #endif
 
 
@@ -702,7 +702,7 @@ int main() try
         
         
         #ifdef ENABLE_TIMING
-        glQueryCounter(state.queries[++state.qCount], GL_TIMESTAMP);
+        glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
 
         GLuint64 startTime, start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, endTime;
         glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &startTime);
@@ -722,6 +722,8 @@ int main() try
         printf("1.5 GPU: %lu\n", end1_5 - start1_5);
 
         glDeleteQueries(10, state.queries);
+
+        state.qCount = 0;
         #endif
 
 
@@ -881,9 +883,9 @@ namespace
         glBindVertexArray(vao);
 
         #ifdef ENABLE_TIMING
-		glQueryCounter(state.queries[++state.qCount], GL_TIMESTAMP);
+		glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-		glQueryCounter(state.queries[++state.qCount], GL_TIMESTAMP);
+		glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
         #else
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
         #endif
