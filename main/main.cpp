@@ -37,6 +37,9 @@
 #define PRESSED 2
 
 
+#define ENABLE_TIMING 1
+
+
 namespace
 {
     constexpr char const* kWindowTitle = "COMP3811 - CW2";
@@ -440,20 +443,11 @@ int main() try
     {
 
         #ifdef ENABLE_TIMING
-
-		GLuint queries[2];
-		glGenQueries(2, queries);
+		GLuint queries[10];
+		glGenQueries(10, queries);
 
 		glQueryCounter(queries[0], GL_TIMESTAMP);
-
         #endif
-
-
-
-
-
-
-
 
 
         // Let GLFW process events
@@ -699,28 +693,32 @@ int main() try
         
         
         #ifdef ENABLE_TIMING
-        
-        glQueryCounter(queries[1], GL_TIMESTAMP);
+        glQueryCounter(queries[9], GL_TIMESTAMP);
 
-        GLuint64 startTime, endTime;
+        GLuint64 startTime, start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, endTime;
         glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &startTime);
-        glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &endTime);
-        
-        printf("GPU start timestamp: %lu\n", endTime - startTime);
+        glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &start1_2);
+        glGetQueryObjectui64v(queries[2], GL_QUERY_RESULT, &end1_2);
+        glGetQueryObjectui64v(queries[3], GL_QUERY_RESULT, &start1_4_1);
+        glGetQueryObjectui64v(queries[4], GL_QUERY_RESULT, &end1_4_1);
+        glGetQueryObjectui64v(queries[5], GL_QUERY_RESULT, &start1_4_2);
+        glGetQueryObjectui64v(queries[6], GL_QUERY_RESULT, &end1_4_2);
+        glGetQueryObjectui64v(queries[7], GL_QUERY_RESULT, &start1_5);
+        glGetQueryObjectui64v(queries[8], GL_QUERY_RESULT, &end1_5);
+        glGetQueryObjectui64v(queries[9], GL_QUERY_RESULT, &endTime);
 
-        glDeleteQueries(2, queries);
+        printf("Per Frame GPU: %lu\n", endTime - startTime);
+        printf("1.2 GPU: %lu\n", end1_2 - start1_2);
+        printf("1.4 GPU: %lu\n", (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2));
+        printf("1.5 GPU: %lu\n", end1_5 - start1_5);
 
+        glDeleteQueries(10, queries);
         #endif
 
 
 
         // Display results
         glfwSwapBuffers( window );
-
-
-
-
-
     }
 
     // Cleanup.
@@ -856,21 +854,6 @@ namespace
     }
 
 
-    void drawMesh(
-        GLuint vao,
-        GLuint vertexCount,
-        const Mat44f &projCameraWorld,
-        const Mat33f &normalMatrix,
-        State_ &state
-    ) {
-        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
-        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
-
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-    }
-
-
     // Contains main rendering logic
     void renderScene( State_ &state ) {
 
@@ -880,22 +863,6 @@ namespace
         Mat44f model2world = kIdentity44f;
         Mat44f projCameraWorld = state.renderData.projection * state.renderData.world2camera * model2world;
         Mat33f normalMatrix = mat44_to_mat33(transpose(invert(model2world)));
-
-        // Translations and projection for first launchpad
-        Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
-        Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
-        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
-
-        Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
-        Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
-        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
-
-        // Combine translation and rotation
-        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
-        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
-        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));    
-
-        // === Drawing ===
 
         // Langerso mesh
         glUniformMatrix4fv(
@@ -908,9 +875,76 @@ namespace
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, state.renderData.textureObjectId );
 
-        drawMesh(state.renderData.langersoVao, state.renderData.langersoVertexCount, projCameraWorld, normalMatrix, state);
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix.v);
 
-        // Draw Vehicle
+        glBindVertexArray(state.renderData.langersoVao);
+        
+        #ifdef ENABLE_TIMING
+        glQueryCounter(queries[1], GL_TIMESTAMP);
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.langersoVertexCount);
+        glQueryCounter(queries[2], GL_TIMESTAMP);
+        #else
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.langersoVertexCount);
+        #endif
+
+
+        // Translations, projection, drawing of 1st launchpad
+        Mat44f model2worldLaunchpad =  make_translation( Vec3f { 3.f, 0.f, -5.f } ) * model2world;
+        Mat44f projCameraWorld_LP1 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad;
+        Mat33f normalMatrix_LP1 = mat44_to_mat33(transpose(invert(model2worldLaunchpad)));
+
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2worldLaunchpad.v
+        );
+
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld_LP1.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix_LP1.v);
+
+        glBindVertexArray(state.renderData.landingPadVao);
+
+        #ifdef ENABLE_TIMING
+        glQueryCounter(queries[3], GL_TIMESTAMP);
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.landingPadVertexCount);
+        glQueryCounter(queries[4], GL_TIMESTAMP);
+        #else
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.landingPadVertexCount);
+        #endif
+
+
+
+        // Translations, projection, drawing of 2nd launchpad
+        Mat44f model2worldLaunchpad2 = make_translation( Vec3f { -7.f, 0.f, 7.f } ) * model2world;
+        Mat44f projCameraWorld_LP2 = state.renderData.projection * state.renderData.world2camera * model2worldLaunchpad2;
+        Mat33f normalMatrix_LP2 = mat44_to_mat33(transpose(invert(model2worldLaunchpad2)));
+
+        glUniformMatrix4fv(
+            state.renderData.uModel2WorldLocation, 1,
+            GL_TRUE, model2worldLaunchpad2.v
+        );
+
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld_LP2.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix_LP2.v);
+
+        glBindVertexArray(state.renderData.landingPadVao);
+
+        #ifdef ENABLE_TIMING
+        glQueryCounter(queries[5], GL_TIMESTAMP);
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.landingPadVertexCount);
+        glQueryCounter(queries[6], GL_TIMESTAMP);
+        #else
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.landingPadVertexCount);
+        #endif
+
+
+
+
+        // Translations, projection, drawing of Vehicle
+        Mat44f model2worldVehicle = make_translation(state.vehicleControl.position) * make_rotation_x(state.vehicleControl.theta);
+        Mat44f projCameraWorld_V = state.renderData.projection * state.renderData.world2camera * model2worldVehicle;
+        Mat33f normalMatrix_V = mat44_to_mat33(transpose(invert(model2worldVehicle)));    
+
         glUniform1i(state.renderData.uUseTextureLocation, GL_FALSE);
 
         glUniformMatrix4fv(
@@ -918,23 +952,18 @@ namespace
             GL_TRUE, model2worldVehicle.v
         );
 
-        drawMesh(state.renderData.vehicleVao, state.renderData.vehicleVertexCount, projCameraWorld_V, normalMatrix_V, state);
+        glUniformMatrix4fv(state.renderData.uProjCameraWorldLocation, 1, GL_TRUE, projCameraWorld_V.v);
+        glUniformMatrix3fv(state.renderData.uNormalMatrixLocation, 1, GL_TRUE, normalMatrix_V.v);
 
-        // Draw first launch pad
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2worldLaunchpad.v
-        );
+        glBindVertexArray(state.renderData.vehicleVao);
 
-        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP1, normalMatrix_LP1, state);
-
-        glUniformMatrix4fv(
-            state.renderData.uModel2WorldLocation, 1,
-            GL_TRUE, model2worldLaunchpad2.v
-        );
-
-        // Draw second launch pad
-        drawMesh(state.renderData.landingPadVao, state.renderData.landingPadVertexCount, projCameraWorld_LP2, normalMatrix_LP2, state);
+        #ifdef ENABLE_TIMING
+        glQueryCounter(queries[7], GL_TIMESTAMP);
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.vehicleVertexCount);
+        glQueryCounter(queries[8], GL_TIMESTAMP);
+        #else
+        glDrawArrays(GL_TRIANGLES, 0, state.renderData.vehicleVertexCount);
+        #endif
 
     }
 }
