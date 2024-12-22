@@ -698,7 +698,6 @@ int main() try
 		// glEndQuery(GL_TIME_ELAPSED); // End elapsed time measurement
 		// glQueryCounter(GL_TIMESTAMP, queries[1]); // Record the timestamp after rendering
 
-		break;
     }
 
     // Cleanup.
