@@ -37,7 +37,7 @@
 #define MOUSE_OVER 1
 #define PRESSED 2
 
-#define ENABLE_TIMING
+//#define ENABLE_TIMING
 
 namespace
 {
@@ -1129,11 +1129,11 @@ namespace
 					// Convert corner1 and corner2 from NDC to screen space
 					float corner1X, corner2X, corner1Y, corner2Y;
 
-					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
-					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth/2.f; // NDC to screen X
+					corner1X = (b.corner1.x + 1.0f) * 0.5f * fbwidth; // NDC to screen X
+					corner2X = (b.corner2.x + 1.0f) * 0.5f * fbwidth; // NDC to screen X
 
-					corner1Y = fbheight/2.f - (b.corner1.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
-					corner2Y = fbheight/2.f - (b.corner2.y + 1.0f) * 0.5f * fbheight/2.f; // NDC to screen Y (top-left origin)
+					corner1Y = fbheight - (b.corner1.y + 1.0f) * 0.5f * fbheight; // NDC to screen Y (top-left origin)
+					corner2Y = fbheight - (b.corner2.y + 1.0f) * 0.5f * fbheight; // NDC to screen Y (top-left origin)
 
                     // Check if the mouse position (screen space) is within the button boundaries
                     if (corner1X <= aMouseXPos && aMouseXPos <= corner2X &&
