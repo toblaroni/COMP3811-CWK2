@@ -439,11 +439,17 @@ int main() try
     while( !glfwWindowShouldClose( window ) )
     {
 
-		// GLuint queries[2];
-		// glGenQueries(2, queries);
+        #ifdef ENABLE_TIMING
 
-		// glQueryCounter(GL_TIMESTAMP, queries[0]); // Record the timestamp before rendering
-		// glBeginQuery(GL_TIME_ELAPSED, queries[1]); // Start measuring elapsed time
+		GLuint queries[2];
+		glGenQueries(2, queries);
+
+		glQueryCounter(queries[0], GL_TIMESTAMP);
+
+        #endif
+
+
+
 
 
 
@@ -491,9 +497,9 @@ int main() try
             );
         }
 
-        // Draw scene
         OGL_CHECKPOINT_DEBUG();
 
+        // Draw scene
 
         glUseProgram(prog.programId());
 
@@ -690,13 +696,30 @@ int main() try
 
         OGL_CHECKPOINT_DEBUG();
 
+        
+        
+        #ifdef ENABLE_TIMING
+        
+        glQueryCounter(queries[1], GL_TIMESTAMP);
+
+        GLuint64 startTime, endTime;
+        glGetQueryObjectui64v(queries[0], GL_QUERY_RESULT, &startTime);
+        glGetQueryObjectui64v(queries[1], GL_QUERY_RESULT, &endTime);
+        
+        printf("GPU start timestamp: %lu\n", endTime - startTime);
+
+        glDeleteQueries(2, queries);
+
+        #endif
+
+
+
         // Display results
         glfwSwapBuffers( window );
 
 
 
-		// glEndQuery(GL_TIME_ELAPSED); // End elapsed time measurement
-		// glQueryCounter(GL_TIMESTAMP, queries[1]); // Record the timestamp after rendering
+
 
     }
 
