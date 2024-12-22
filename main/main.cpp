@@ -175,7 +175,11 @@ namespace
         #ifdef ENABLE_TIMING
         GLuint queries[10];
         size_t qCount = 0;
+
+        std::__1::chrono::steady_clock::time_point startF2F;
         #endif
+
+
 
     };
 
@@ -406,7 +410,7 @@ int main() try
 
     // Assign shader programs
     state.prog = &prog;
-	  state.UI_prog = &UI_prog;
+	state.UI_prog = &UI_prog;
 
     glfwGetFramebufferSize(window, &fbwidth, &fbheight);
 
@@ -446,9 +450,11 @@ int main() try
     {
 
         #ifdef ENABLE_TIMING
-		glGenQueries(8, state.queries);
+		glGenQueries(12, state.queries);
 
+        state.startF2F = std::chrono::high_resolution_clock::now();
         #endif
+
 
 
         // Let GLFW process events
@@ -671,14 +677,27 @@ int main() try
                 glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
             }
 
+            #ifdef ENABLE_TIMING
+            glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
             glDrawArrays(GL_TRIANGLES, i*30, 6);
+            glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
+            #else
+            glDrawArrays(GL_TRIANGLES, i*30, 6);
+            #endif
         }
 
         static float const baseColor[] = {0.f, 0.f, 0.f, 1.f};
         glUniform4fv(state.renderData.uButtonActiveColorLocation, 1, baseColor);
 
         for (size_t i = 0; i < UI.buttons.size(); i++) {
+
+            #ifdef ENABLE_TIMING
+            glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
             glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
+            glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
+            #else
+            glDrawArrays(GL_TRIANGLES, (i*30)+6, 24);
+            #endif
         }
 
 
@@ -695,7 +714,7 @@ int main() try
         
         #ifdef ENABLE_TIMING
         
-        GLuint64 start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5;
+        GLuint64 start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, startUI_1, endUI_1, startUI_2, endUI_2;
         glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &start1_2);
         glGetQueryObjectui64v(state.queries[1], GL_QUERY_RESULT, &end1_2);
         glGetQueryObjectui64v(state.queries[2], GL_QUERY_RESULT, &start1_4_1);
@@ -705,17 +724,38 @@ int main() try
         glGetQueryObjectui64v(state.queries[6], GL_QUERY_RESULT, &start1_5);
         glGetQueryObjectui64v(state.queries[7], GL_QUERY_RESULT, &end1_5);
 
-        auto totalGPUtime = (end1_2 - start1_2) + (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2) + (end1_5 - start1_5);
+        glGetQueryObjectui64v(state.queries[8], GL_QUERY_RESULT, &startUI_1);
+        glGetQueryObjectui64v(state.queries[9], GL_QUERY_RESULT, &endUI_1);
+        glGetQueryObjectui64v(state.queries[10], GL_QUERY_RESULT, &startUI_2);
+        glGetQueryObjectui64v(state.queries[11], GL_QUERY_RESULT, &endUI_2);
 
-        printf("Per Frame GPU: %lu\n", totalGPUtime);
-        printf("1.2 GPU: %lu\n", end1_2 - start1_2);
-        printf("1.4 GPU: %lu\n", (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2));
-        printf("1.5 GPU: %lu\n", end1_5 - start1_5);
+        auto totalGPUtime = (end1_2 - start1_2) +
+                            (end1_4_1 - start1_4_1) +
+                            (end1_4_2 - start1_4_2) +
+                            (end1_5 - start1_5) +
+                            (endUI_1 - startUI_1) +
+                            (endUI_2 - startUI_2);
 
-        glDeleteQueries(8, state.queries);
+        std::__1::chrono::steady_clock::time_point totalF2F = std::chrono::high_resolution_clock::now() - state.startF2F;
+        std::__1::chrono::steady_clock::time_point totalCPUtime = totalF2F - std::chrono::nanoseconds(totalGPUtime);
+
+        printf("Per Frame Total Render Time, GPU: %lu ns\n", totalGPUtime);
+        printf("1.2 Render Time, GPU: %lu ns\n", end1_2 - start1_2);
+        printf("1.4 Render Time, GPU: %lu ns\n", (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2));
+        printf("1.5 Render Time, GPU: %lu ns\n", end1_5 - start1_5);
+
+        printf("Frame-to-Frame Time, CPU: %lu ns\n", totalF2F);
+
+
+
+        glDeleteQueries(12, state.queries);
 
         state.qCount = 0;
+
         #endif
+
+
+
 
 
 
