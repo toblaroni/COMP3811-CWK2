@@ -446,17 +446,9 @@ int main() try
     {
 
         #ifdef ENABLE_TIMING
-		glGenQueries(10, state.queries);
+		glGenQueries(8, state.queries);
 
-		glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
         #endif
-
-
-
-
-
-
-
 
 
         // Let GLFW process events
@@ -702,26 +694,25 @@ int main() try
         
         
         #ifdef ENABLE_TIMING
-        glQueryCounter(state.queries[state.qCount++], GL_TIMESTAMP);
+        
+        GLuint64 start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5;
+        glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &start1_2);
+        glGetQueryObjectui64v(state.queries[1], GL_QUERY_RESULT, &end1_2);
+        glGetQueryObjectui64v(state.queries[2], GL_QUERY_RESULT, &start1_4_1);
+        glGetQueryObjectui64v(state.queries[3], GL_QUERY_RESULT, &end1_4_1);
+        glGetQueryObjectui64v(state.queries[4], GL_QUERY_RESULT, &start1_4_2);
+        glGetQueryObjectui64v(state.queries[5], GL_QUERY_RESULT, &end1_4_2);
+        glGetQueryObjectui64v(state.queries[6], GL_QUERY_RESULT, &start1_5);
+        glGetQueryObjectui64v(state.queries[7], GL_QUERY_RESULT, &end1_5);
 
-        GLuint64 startTime, start1_2, end1_2, start1_4_1, end1_4_1, start1_4_2, end1_4_2, start1_5, end1_5, endTime;
-        glGetQueryObjectui64v(state.queries[0], GL_QUERY_RESULT, &startTime);
-        glGetQueryObjectui64v(state.queries[1], GL_QUERY_RESULT, &start1_2);
-        glGetQueryObjectui64v(state.queries[2], GL_QUERY_RESULT, &end1_2);
-        glGetQueryObjectui64v(state.queries[3], GL_QUERY_RESULT, &start1_4_1);
-        glGetQueryObjectui64v(state.queries[4], GL_QUERY_RESULT, &end1_4_1);
-        glGetQueryObjectui64v(state.queries[5], GL_QUERY_RESULT, &start1_4_2);
-        glGetQueryObjectui64v(state.queries[6], GL_QUERY_RESULT, &end1_4_2);
-        glGetQueryObjectui64v(state.queries[7], GL_QUERY_RESULT, &start1_5);
-        glGetQueryObjectui64v(state.queries[8], GL_QUERY_RESULT, &end1_5);
-        glGetQueryObjectui64v(state.queries[9], GL_QUERY_RESULT, &endTime);
+        auto totalGPUtime = (end1_2 - start1_2) + (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2) + (end1_5 - start1_5);
 
-        printf("Per Frame GPU: %lu\n", endTime - startTime);
+        printf("Per Frame GPU: %lu\n", totalGPUtime);
         printf("1.2 GPU: %lu\n", end1_2 - start1_2);
         printf("1.4 GPU: %lu\n", (end1_4_1 - start1_4_1) + (end1_4_2 - start1_4_2));
         printf("1.5 GPU: %lu\n", end1_5 - start1_5);
 
-        glDeleteQueries(10, state.queries);
+        glDeleteQueries(8, state.queries);
 
         state.qCount = 0;
         #endif
