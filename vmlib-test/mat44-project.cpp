@@ -80,7 +80,6 @@ TEST_CASE( "Perspective projection", "[mat44]" )
         }
 	}
 
-    // DO THIS STILL!!!!!
     SECTION( "Altered near and far plane" )
 	{
 		Mat44f proj = make_perspective_projection(
@@ -90,9 +89,9 @@ TEST_CASE( "Perspective projection", "[mat44]" )
 		);
 
         Mat44f expected = {
-            0.974279f, 0.f,       0.f,        0.f,
+            0.974278f, 0.f,       0.f,        0.f,
             0.f,       1.732051f, 0.f,        0.f,
-            0.f,       0.f,      -1.002002f, -0.200200f,
+            0.f,       0.f,      -1.222222f, -2.222222f,
             0.f,       0.f,      -1.f,        0.f
         };
 
